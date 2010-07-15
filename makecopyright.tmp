@@ -1,0 +1,15 @@
+|''examples/all/ucecho'' | ucecho -- uppercase conversion example for all EZ-USB devices |
+|''examples/all/ucecho/c''UCEcho -- C host software for ucecho examples |
+|''examples/usb-1.0/flashbench'' | flashbench -- Flash memory benchmark for ZTEX USB Module 1.0 |
+|''examples/usb-1.0/flashdemo'' | flashdemo -- demo for Flash memory access from firmware and host software for ZTEX USB Module 1.0 |
+|''examples/usb-fpga-1.2/flashbench'' | flashbench -- Flash memory benchmark for ZTEX USB FPGA Module 1.2 |
+|''examples/usb-fpga-1.2/flashdemo'' | flashdemo -- demo for Flash memory access from firmware and host software for ZTEX USB FPGA Module 1.2 |
+|''examples/usb-fpga-1.2/intraffic'' | intraffic -- example showing how the EZ-USB FIFO interface is used on ZTEX USB FPGA Module 1.2 |
+|''examples/usb-fpga-1.2/standalone'' | standalone -- standalone firmware that supports FPGA configuration from FLASH and firmware loading from EEPROM for ZTEX USB FPGA Module 1.2 |
+|''examples/usb-fpga-1.2/ucecho'' ucecho -- uppercase conversion example for ZTEX USB FPGA Module 1.2 |
+|''examples/usb-fpga-1.11/flashbench'' | flashbench -- Flash memory benchmark for ZTEX USB FPGA Module 1.11 |
+|''examples/usb-fpga-1.11/flashdemo'' | flashdemo -- demo for Flash memory access from firmware and host software for ZTEX USB FPGA Module 1.11 |
+|''examples/usb-fpga-1.11/intraffic'' | intraffic -- example showing how the EZ-USB FIFO interface is used on ZTEX USB FPGA Module 1.11 |
+|''examples/usb-fpga-1.11/memtest'' | memtest -- DDR SDRAM FIFO for testing memory on ZTEX USB FPGA Module 1.11 |
+|''examples/usb-fpga-1.11/standalone'' | standalone -- standalone firmware that supports FPGA configuration from FLASH and firmware loading from EEPROM for ZTEX USB FPGA Module 1.11 |
+|''examples/usb-fpga-1.11/ucecho'' | ucecho -- uppercase conversion example for ZTEX USB FPGA Module 1.11 |
