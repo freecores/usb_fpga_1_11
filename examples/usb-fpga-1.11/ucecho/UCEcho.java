@@ -137,7 +137,7 @@ class UCEcho extends Ztex1v1 {
 	    
 // upload the bitstream if necessary
 	    if ( force || ! ztex.getFpgaConfiguration() ) {
-		System.out.println("FPGA configuration time: " + ztex.configureFpga( "fpga/ucecho.bin" , force ) + " ms");
+		System.out.println("FPGA configuration time: " + ztex.configureFpga( "fpga/ucecho.bit" , force ) + " ms");
 	    } 
 
 

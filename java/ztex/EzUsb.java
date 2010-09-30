@@ -53,7 +53,7 @@ public class EzUsb {
   * Uploads the Firmware to a Cypress EZ-USB device.
   * @param handle The handle of the device.
   * @param ihxFile The firmware image.
-  * @return The upload time in ms.
+  * @return the upload time in ms.
   * @throws FirmwareUploadException if an error occurred while attempting to upload the firmware.
   */
     public static long uploadFirmware (int handle, IhxFile ihxFile ) throws FirmwareUploadException {

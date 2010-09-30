@@ -125,7 +125,7 @@ public class Ztex1 {
 	int i = -1;
 	if ( controlMsgTimeout < 200 )
 	    controlMsgTimeout = 200;
-	while ( i<=0 && new Date().getTime()-t0<controlMsgTimeout ) {		// we repeat the message until the timeout has reached
+//	while ( i<=0 && new Date().getTime()-t0<controlMsgTimeout ) {		// we repeat the message until the timeout has reached
 	    i = LibusbJava.usb_control_msg(handle, 0x40, cmd, value, index, buf, length, controlMsgTimeout);
 	    if ( certainWorkarounds ) {
 		try {
@@ -144,7 +144,7 @@ public class Ztex1 {
 		}	
 		trynum++;
 	    }
-	} 
+//	} 
 	if ( i < 0 )
 	    throw new UsbException( dev.dev(), (func != null ? func + ": " : "" )+ LibusbJava.usb_strerror());
 	return i;
@@ -436,6 +436,7 @@ public class Ztex1 {
   * @throws UsbException if a communication error occurs.
   * @throws InvalidFirmwareException if ZTEX descriptor 1 is not available.
   * @throws DeviceLostException if a device went lost after renumeration.
+  * @return the upload time in ms.
   */
 //  returns upload time in ms
     public long uploadFirmware ( String ihxFileName, boolean force ) throws IncompatibleFirmwareException, FirmwareUploadException, UsbException, InvalidFirmwareException, DeviceLostException {

@@ -131,6 +131,9 @@ eeprom_select_start:
 BYTE eeprom_read ( __xdata BYTE *buf, WORD addr, BYTE length ) { 
     BYTE bytes = 0,i;
     
+    if ( length == 0 ) 
+	return 0;
+    
     if ( eeprom_select(100,0) ) 
 	goto eeprom_read_end;
     

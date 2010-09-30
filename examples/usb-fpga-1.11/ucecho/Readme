@@ -12,7 +12,7 @@ This example does the same as the example in directory ../../all/ucecho
 except that the uppercase - lowercase conversion made by the FPGA.
 
 The driver (defined in UCEcho.java) uploads the the Firmware (ucecho.ihx) 
-to the EZ-USB Microcontroller and the Bitstream (fpga/ucecho.bin) to the
+to the EZ-USB Microcontroller and the Bitstream (fpga/ucecho.bit) to the
 FPGA if necessary, sends user string to the device and reads them back.
 
 Uploading the Firmware to EEPROM is also supported by the firmware (e.g. 

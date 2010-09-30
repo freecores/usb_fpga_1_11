@@ -37,9 +37,9 @@
     _endasm;
 ]
 
-#define[MSB(][)][((BYTE)(((unsigned short)($0)) >> 8))]
+#define[MSB(][)][((BYTE)((((unsigned short)($0)) >> 8) & 0xff)) ]
 #define[LSB(][)][((BYTE)($0))]
-#define[HI(][)][((BYTE)(((unsigned short)($0)) >> 8))]
+#define[HI(][)][((BYTE)((((unsigned short)($0)) >> 8) & 0xff)) ]
 #define[LO(][)][((BYTE)($0))]
 
 typedef unsigned char BYTE;
@@ -117,12 +117,12 @@ void MEM_COPY1_int() __naked {
 */	
 
 #define[MEM_COPY1(][,$1,$2);][{
+	AUTOPTRL1=LO(&($0));
+	AUTOPTRH1=HI(&($0));
+	AUTOPTRL2=LO(&($1));
+	AUTOPTRH2=HI(&($1));
         _asm
 		push	ar2
-		mov	_AUTOPTRL1,#(_$0)
-		mov	_AUTOPTRH1,#((_$0) >> 8)
-		mov	_AUTOPTRL2,#(_$1)
-		mov	_AUTOPTRH2,#((_$1) >> 8)
   		mov	r2,#($2);
 		lcall 	_MEM_COPY1_int
 		pop	ar2

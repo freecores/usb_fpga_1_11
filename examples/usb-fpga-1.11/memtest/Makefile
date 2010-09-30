@@ -18,7 +18,7 @@ IHXTARGETS=memtest.ihx
 IHXEXTRADEPS=
 
 # Extra files that should be included into th jar archive
-EXTRAJARFILES=memtest.ihx fpga/memtest.bin
+EXTRAJARFILES=memtest.ihx fpga/memtest.bit
 
 ################################
 # DO NOT CHANAGE THE FOLLOWING #

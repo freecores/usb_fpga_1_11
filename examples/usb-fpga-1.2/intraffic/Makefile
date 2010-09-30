@@ -18,7 +18,7 @@ IHXTARGETS=intraffic.ihx
 IHXEXTRADEPS=
 
 # Extra files that should be included into th jar archive
-EXTRAJARFILES=intraffic.ihx fpga/intraffic.bin
+EXTRAJARFILES=intraffic.ihx fpga/intraffic.bit
 
 ################################
 # DO NOT CHANAGE THE FOLLOWING #

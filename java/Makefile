@@ -30,6 +30,7 @@ $(JARTARGET) : $(CLASSTARGETS) $(EXTRAJARFILES)
 
 clean: 
 	rm -f *~ *.bak *.old
+	rm -f ztex/*~ ztex/*.bak ztex/*.old
 	rm -f *.class 
 	rm -f *.rel *.rst *.lnk *.lst *.map *.asm *.sym *.mem *.tmp.c 
 

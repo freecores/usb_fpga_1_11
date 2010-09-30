@@ -24,7 +24,7 @@
 #define[ZTEX_CONF_H]
 
 /* 
-   Don't expant macros in comments
+   Don't expand macros in comments
 */
 #define[//][
 ][#noexpand[!dnapxeon!]//$0!dnapxeon!
@@ -38,7 +38,7 @@
    
    The default vendor ID is the ZTEX vendor ID 0x221A, default product ID is
    0x100 which is assigned to ZTEX modules. These ID's can be shared by many
-   differend products which are identified by the product ID of the ZTEX
+   different products which are identified by the product ID of the ZTEX
    descriptor. According to the USB-IF rules these ID's must not be used by
    hardware which is not manufactured by ZTEX. (Of course, this ID's can be 
    used during the development process or for internal purposes.)
@@ -47,7 +47,7 @@
    informations about this topic.   
    
    Usage:
-	SET_VPID(<Vendor ID>,<Pioduct ID>);
+	SET_VPID(<Vendor ID>,<Product ID>);
 */
 #define[SET_VPID(][,$1);][#define[USB_VENDOR_ID][$0]
 #define[USB_PRODUCT_ID][$1]]
@@ -57,7 +57,7 @@ SET_VPID(0x221a,0x100);
    This macro is called before FPGA Firmware is reset, e.g. to save some
    settings. After this macro is called the I/O ports are set to default
    states in order to avoid damage during / after the FPGA configuration.
-   To append someting to this macro use the follwing definition:
+   To append something to this macro use the following definition:
 #define[PRE_FPGA_RESET][PRE_FPGA_RESET
 ...]
 */
@@ -67,7 +67,7 @@ SET_VPID(0x221a,0x100);
 /* 
    This macro is called after FPGA Firmware has been configured. This is
    usually used to configure the I/O ports.
-   To append someting to this macro use the follwing definition:
+   To append something to this macro use the following definition:
 #define[POST_FW_LOAD][POST_FW_LOAD
 ...]
 */
@@ -134,17 +134,17 @@ case $0:
    Endoint 1,2,4,5,8 configuration:
 
    EP_CONFIG(<EP number>,<interface>,<type>,<direction>,<size>,<buffers>)
-        <EP number> = 1IN | 1OUT | 2 | 4 | 6 | 8	Endpoint numer
+        <EP number> = 1IN | 1OUT | 2 | 4 | 6 | 8	Endpoint number
         <INTERFACE> = 0 | 1 | 2 | 3			To which interface this endpoint belongs
 	<type>      = BULK  | ISO | INT
 	<dir>       = IN | OUT
 	<size>      = 512 | 1024
 	<buffers>   = 1 | 2 | 3 | 4
    Example: EP_CONFIG(2,0,ISO,OUT,1024,4);
-   Importand note: No spaces next to the commas
+   Important note: No spaces next to the commas
 
 
-   Endoint 1 configuration:
+   Endpoint 1 configuration:
    
    These Endpoints are defined by default as bulk endpoints and are assigned to interface 0.
    Endpoint size is always 64 bytes, but reported Endpoint size will be 512 bytes for USB 2.0 compliance. 
@@ -226,12 +226,12 @@ EP_CONFIG(1OUT,0,BULK,OUT,512,1);
 
    Default value is 1 for all endpoints.
 
-   EP_PPMF(<EP number>,<tansactions per microframe>)
+   EP_PPMF(<EP number>,<transactions per microframe>)
         <EP number>                  = 1IN | 1OUT | 2 | 4 | 6 | 8	Endpoint
-        <tansactions per microframe> = 1 | 2 | 3			Transactions per microframe
+        <transactions per microframe> = 1 | 2 | 3			Transactions per microframe
         
    Example: EP_PPMF(2,3);
-   Importand note: No spaces next to the commas
+   Important note: No spaces next to the commas
 */
 #define[EP_PPMF(][,$1);][
 #ifeq[$0][1IN]
@@ -266,7 +266,7 @@ EP_PPMF(8,1);
         <polling interval> = 1 | 2 | 3				Polling interval
         
    Example: EP_POLL(2,1);
-   Importand note: No spaces next to the commas
+   Important note: No spaces next to the commas
 */
 #define[EP_POLL(][,$1);][
 #ifeq[$0][1IN]
@@ -390,25 +390,38 @@ EP_POLL(8,1);
 
 
 /* 
-   This macro defines the Manufacturer string. Limited to 31 charcters. 
+   Identify as ZTEX USB XMEGA Module 1.0
+   Usage: IDENTITY_UM_1_0(<PRODUCT_ID_0>.<PRODUCT_ID_1><PRODUCT_ID_2>.<PRODUCT_ID_3>,<FW_VERSION>);
+*/
+#define[IDENTITY_UXM_1_0(][.$1.$2.$3,$4);][#define[PRODUCT_ID_0][$0]
+#define[PRODUCT_ID_1][$1]
+#define[PRODUCT_ID_2][$2]
+#define[PRODUCT_ID_3][$3]
+#define[FWVER][$4]
+#define[PRODUCT_IS][UXM-1_0]
+#define[PRODUCT_STRING]["USB XMEGA Module 1.0"]]
+
+
+/* 
+   This macro defines the Manufacturer string. Limited to 31 characters. 
 */
 #define[MANUFACTURER_STRING]["ZTEX"]
 
 
 /* 
-   This macro defines the Product string. Limited to 31 charcters. 
+   This macro defines the Product string. Limited to 31 characters. 
 */
 #define[PRODUCT_STRING]["USB-FPGA Module"]
 
 
 /* 
-   This macro defines the Configuration string. Limited to 31 charcters. 
+   This macro defines the Configuration string. Limited to 31 characters. 
 */
 #define[CONFIGURATION_STRING]["(unknown)"]
 
 
 /* 
-   This macro enables defines the Configuration string. Limited to 31 charcters. 
+   This macro enables defines the Configuration string. Limited to 31 characters. 
 */
 #define[CONFIGURATION_STRING]["(unknown)"]
 
@@ -417,7 +430,7 @@ EP_POLL(8,1);
    This macro disables EEPROM interface and certain I2C functions (enabled by default)
    Usage: DISABLE_EEPROM; 
 */
-#define[DISBALE_EEPROM;][#define[EEPROM_DISBALED][1]]
+#define[DISABLE_EEPROM;][#define[EEPROM_DISABLED][1]]
 
 
 /* 
@@ -431,5 +444,22 @@ EP_POLL(8,1);
    Usage: ENABLE_FLASH_BITSTREAM; 
 */
 #define[ENABLE_FLASH_BITSTREAM;][#define[FLASH_BITSTREAM_ENABLED][1]]
+
+/* 
+   This enables the debug helper. The debug helper consists in a stack of messages which can be read out from host software.
+   See ../examples/all/debug/Readme.
+   Usage: ENABLE_DEBUG(<stack size>,<message_size>);
+	<stack size>	number of messages in stack
+	<message size>  message size in bytes
+*/
+#define[ENABLE_DEBUG(][,$1);][#define[DEBUG_ENABLED][1]
+#define[DEBUG_STACK_SIZE][$0]
+#define[DEBUG_MSG_SIZE][$1]]
+
+/* 
+   This macro disables XMEGA support, if available
+   Usage: ENABLE_FLASH; 
+*/
+#define[XMEGA_DISABLED;][#define[XMEGA_DISABLED][1]]
 
 #endif

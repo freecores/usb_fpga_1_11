@@ -21,7 +21,7 @@
 
 // 1024 (instead of 512) byte bulk transfers.
 // According to USB standard they are invalid but usually supported and 25% faster.
-//#define[fastmode]
+#define[fastmode]
 
 #ifdef[fastmode]
 // configure endpoint 2, in, quad buffered, 1024 bytes, interface 0

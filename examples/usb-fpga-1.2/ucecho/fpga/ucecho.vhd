@@ -11,8 +11,10 @@ entity ucecho is
 end ucecho;
 
 
---signal declaration
 architecture RTL of ucecho is
+
+--signal declaration
+signal pb_buf : unsigned(7 downto 0);
 
 begin
     dpUCECHO: process(CLK)
@@ -20,10 +22,11 @@ begin
          if CLK' event and CLK = '1' then
 	    if ( pc >= 97 ) and ( pc <= 122)
 	    then
-		pb <= pc - 32;
+		pb_buf <= pc - 32;
 	    else
-		pb <= pc;
+		pb_buf <= pc;
 	    end if;
+	    pb <= pb_buf;
 	end if;
     end process dpUCECHO;
     

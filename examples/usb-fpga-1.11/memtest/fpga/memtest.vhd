@@ -73,8 +73,7 @@ component mem0
 	C3_MEM_ADDR_ORDER     : string := "ROW_BANK_COLUMN";
 	C3_NUM_DQ_PINS        : integer := 16;
 	C3_MEM_ADDR_WIDTH     : integer := 13;
-	C3_MEM_BANKADDR_WIDTH : integer := 2;
-	C3_MC_CALIB_BYPASS    : string := "NO"
+	C3_MEM_BANKADDR_WIDTH : integer := 2
     );
 	
    port (
@@ -88,7 +87,6 @@ component mem0
         mcb3_dram_dm         : out std_logic;
         mcb3_dram_udqs       : inout std_logic;
         mcb3_rzq             : inout std_logic;
-        mcb3_zio             : inout std_logic;
         mcb3_dram_udm        : out std_logic;
         mcb3_dram_dqs        : inout std_logic;
         mcb3_dram_ck         : out std_logic;
@@ -314,7 +312,6 @@ begin
 	mcb3_dram_udm   =>  mcb3_dram_udm,     -- for X16 parts
         mcb3_dram_dm    =>  mcb3_dram_dm,
 	mcb3_rzq        =>  mcb3_rzq,
-        mcb3_zio        =>  mcb3_zio,
         
 	c3_sys_clk      =>  MEM_CLK,
 	c3_sys_rst_n    =>  RESET0,

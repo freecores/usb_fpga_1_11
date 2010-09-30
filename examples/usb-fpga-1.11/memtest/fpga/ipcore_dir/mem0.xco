@@ -1,7 +1,7 @@
 ##############################################################
 #
-# Xilinx Core Generator version 11.4
-# Date: Mon Jun  7 10:52:19 2010
+# Xilinx Core Generator version 12.2
+# Date: Fri Aug 20 09:42:54 2010
 #
 ##############################################################
 #
@@ -13,30 +13,30 @@
 ##############################################################
 #
 # BEGIN Project Options
-SET addpads = False
-SET asysymbol = True
+SET addpads = false
+SET asysymbol = true
 SET busformat = BusFormatAngleBracketNotRipped
-SET createndf = False
+SET createndf = false
 SET designentry = VHDL
 SET device = xc6slx16
 SET devicefamily = spartan6
-SET flowvendor = Foundation_ISE
-SET formalverification = False
-SET foundationsym = False
+SET flowvendor = Other
+SET formalverification = false
+SET foundationsym = false
 SET implementationfiletype = Ngc
 SET package = ftg256
-SET removerpms = False
+SET removerpms = false
 SET simulationfiles = Behavioral
 SET speedgrade = -2
-SET verilogsim = False
-SET vhdlsim = True
+SET verilogsim = false
+SET vhdlsim = true
 # END Project Options
 # BEGIN Select
-SELECT MIG family Xilinx,_Inc. 3.3
+SELECT MIG family Xilinx,_Inc. 3.5
 # END Select
 # BEGIN Parameters
 CSET component_name=mem0
-CSET xml_input_file=/drv_s2/usb-fpga/ztex/examples/usb-fpga-1.11/memtest/fpga/ipcore_dir/mem0/user_design/mig.prj
+CSET xml_input_file=./mem0/user_design/mig.prj
 # END Parameters
 GENERATE
-# CRC: 79d4171a
+# CRC: 1734ed6e

@@ -30,9 +30,8 @@
    ********************************************************************* */
 #include[ztex-utils.h]
 
-
 /* *********************************************************************
-   ***** EEPROM support and some I2c helper functions ******************
+   ***** EEPROM support and some I2C helper functions ******************
    ********************************************************************* */
 #ifneq[EEPROM_DISABLED][1]
 #include[ztex-eeprom.h]
@@ -67,6 +66,14 @@
 #define[MMC_BIT_CLK][5]
 #include[ztex-flash1.h]
 
+#elifeq[PRODUCT_IS][UM-1_0]
+#define[MMC_PORT][C]
+#define[MMC_BIT_CS][7]
+#define[MMC_BIT_DI][6]
+#define[MMC_BIT_DO][4]
+#define[MMC_BIT_CLK][5]
+#include[ztex-flash1.h]
+
 #elifeq[PRODUCT_IS][UFM-1_10]
 #define[MMC_PORT][A]
 #define[MMC__PORT_DO][D]
@@ -85,8 +92,16 @@
 #define[MMC_BIT_CLK][6]
 #include[ztex-flash1.h]
 
+#elifeq[PRODUCT_IS][UXM-1_0]
+#define[MMC_PORT][C]
+#define[MMC_BIT_CS][7]
+#define[MMC_BIT_DI][6]
+#define[MMC_BIT_DO][4]
+#define[MMC_BIT_CLK][5]
+#include[ztex-flash1.h]
+
 #else
-#warning[FLASH option is not supported by this product]
+#warning[Flash memory access is not supported by this product]
 #define[FLASH_ENABLED][0]
 #endif
 #endif
@@ -105,6 +120,25 @@
 #elifeq[PRODUCT_IS][UFM-1_11]
 #include[ztex-fpga3.h]
 #endif
+
+
+/* *********************************************************************
+   ***** DEBUG helper functions ****************************************
+   ********************************************************************* */
+#ifeq[DEBUG_ENABLED][1]
+#include[ztex-debug.h]
+#endif
+
+
+/* *********************************************************************
+   ***** XMEGA support *************************************************
+   ********************************************************************* */
+#ifneq[XMEGA_DISABLED][1]
+#ifeq[PRODUCT_IS][UXM-1_0]
+#include[ztex-xmega.h]
+#endif
+#endif
+
 
 /* *********************************************************************
    ***** define the descriptors and the interrupt routines *************
@@ -225,6 +259,13 @@ void init_USB ()
 #ifeq[FLASH_BITSTREAM_ENABLED][1]
     fpga_configure_from_flash_init();
 #endif
+#ifeq[DEBUG_ENABLED][1]
+    debug_init();
+#endif
+#ifeq[XMEGA_ENABLED][1]
+//    xmega_init();
+#endif
+
 
     USBCS |= bmBIT7 | bmBIT1;
     wait(250);

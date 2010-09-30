@@ -2,10 +2,11 @@
 <Project NoOfControllers="1" >
     <ModuleName>mem0</ModuleName>
     <TargetFPGA>xc6slx16-ftg256/-2</TargetFPGA>
-    <Version>3.3</Version>
+    <Version>3.5</Version>
     <Controller number="3" >
         <MemoryDevice>DDR_SDRAM/Components/MT46V32M16XX-5B-IT</MemoryDevice>
         <TimePeriod>5000</TimePeriod>
+        <EnableVoltageRange>0</EnableVoltageRange>
         <DataMask>1</DataMask>
         <CustomPart>FALSE</CustomPart>
         <NewPartName></NewPartName>
@@ -23,13 +24,15 @@
         <DataClass>Class II</DataClass>
         <InputPinTermination>UNCALIB_TERM</InputPinTermination>
         <DataTermination>50 Ohms</DataTermination>
-        <CalibrationRowAddress>0000</CalibrationRowAddress>
-        <CalibrationColumnAddress>000</CalibrationColumnAddress>
-        <CalibrationBankAddress>0</CalibrationBankAddress>
-        <BypassCalibration>0</BypassCalibration>
+        <CalibrationRowAddress></CalibrationRowAddress>
+        <CalibrationColumnAddress></CalibrationColumnAddress>
+        <CalibrationBankAddress></CalibrationBankAddress>
+        <BypassCalibration>1</BypassCalibration>
         <DebugSignals>Disable</DebugSignals>
         <SystemClock>Single-Ended</SystemClock>
         <Configuration>Two 32-bit bi-directional and four 32-bit unidirectional ports</Configuration>
+        <RzqPin>M4</RzqPin>
+        <ZioPin>M5</ZioPin>
         <PortsSelected>Port0,Port1,Port2,Port3,Port4,Port5</PortsSelected>
         <PortDirections>Bi-directional,Bi-directional,Write,Read,Write,Read</PortDirections>
         <UserMemoryAddressMap>ROW_BANK_COLUMN</UserMemoryAddressMap>

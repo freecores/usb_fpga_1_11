@@ -35,13 +35,13 @@ class FWLoader {
 
 	final String helpMsg = new String (
 			"Global parameters:\n"+
-			"    -c               Scan for Cypres EZ-USB devices without ZTEX firmware\n"+
+			"    -c               Scan for Cypress EZ-USB devices without ZTEX firmware\n"+
 			"    -v <VID> <PID>   Scan for devices with ZTEX firmware and the given Vendor ID and Product ID\n"+
 			"    -vc              Equal to -v 0x4b4 0x8613\n"+
 			"    -d <number>      Device Number (default: 0)\n"+
 			"    -f               Force uploads\n"+
 			"    -p               Print bus info\n"+
-			"    -w               Enable certain workaraounds\n"+
+			"    -w               Enable certain workarounds\n"+
 			"    -h               This help \n\n"+
 			"Ordered parameters:\n"+
 			"    -i               Info\n"+
@@ -49,12 +49,13 @@ class FWLoader {
 			"    -if              Read FPGA state\n"+
 			"    -ru              Reset EZ-USB Microcontroller\n"+
 			"    -uu <ihx file>   Upload EZ-USB Firmware\n"+
+			"    -bs 0|1|A        Bit swapping for bitstreams: 0: disable, 1: enable, A: automatic detection\n"+
 			"    -rf              Reset FPGA\n"+
-			"    -uf <bitstream>  Upload <bitstream>\n"+
+			"    -uf <bitstream>  Upload bitstream to FPGA\n"+
 			"    -re              Reset EEPROM Firmware\n"+
 			"    -ue <ihx file>   Upload Firmware to EEPROM\n"+
 			"    -rm              Reset FLASH bitstream\n"+
-			"    -um <bitstream>  Upload Firmware to FLASH");
+			"    -um <bitstream>  Upload bitstream to Flash");
 	
 	
 // process global parameters
@@ -67,6 +68,7 @@ class FWLoader {
 	    boolean forceUpload = false;
 	    boolean printBus = false;
 	    boolean workarounds = false;
+	    int bs = -1;
 	    
 	    for (int i=0; i<args.length; i++ ) {
 		if ( args[i].equals("-c") ) {
@@ -128,7 +130,7 @@ class FWLoader {
 		}
 		else if ( args[i].equals("-i") || args[i].equals("-ii") || args[i].equals("-if") || args[i].equals("-ru") || args[i].equals("-rf") || args[i].equals("-re") || args[i].equals("-rm") ) {
 		}
-		else if ( args[i].equals("-uu") || args[i].equals("-uf") || args[i].equals("-ue") || args[i].equals("-um") ) {
+		else if ( args[i].equals("-uu") || args[i].equals("-uf") || args[i].equals("-ue") || args[i].equals("-um") || args[i].equals("-bs") ) {
 		    i+=1;
 		}
 		else {
@@ -179,6 +181,31 @@ class FWLoader {
 		    }
 		    System.out.println("Firmware upload time: " + ztex.uploadFirmware( args[i], forceUpload ) + " ms");
 		}
+		else if ( args[i].equals("-bs") ) {
+		    i++;
+    	    	    if ( (i>=args.length) || !( args[i].equals("0") || args[i].equals("1") || args[i].equalsIgnoreCase("A") ) ) {
+			System.err.println("Error: `0',`1' or `A' expected after -bs");
+			System.err.println(helpMsg);
+			System.exit(1);
+		    }
+		    if ( args[i].equals("0") ) 
+			bs = 0;
+		    else if ( args[i].equals("1") ) 
+			bs = 1;
+		    else bs = -1;
+		}
+		else if ( args[i].equals("-rf") ) {
+		    ztex.resetFpga();
+		}
+		else if ( args[i].equals("-uf") ) {
+		    i++;
+    	    	    if ( i >= args.length ) {
+			System.err.println("Error: Filename expected after -uf");
+			System.err.println(helpMsg);
+			System.exit(1);
+		    }
+		    System.out.println("FPGA configuration time: " + ztex.configureFpga( args[i], forceUpload, bs ) + " ms");
+		} 
 		else if ( args[i].equals("-re") ) {
 		    ztex.eepromDisable();
 		} 
@@ -191,18 +218,6 @@ class FWLoader {
 		    }
 		    System.out.println("Firmware to EEPROM upload time: " + ztex.eepromUpload( args[i], forceUpload ) + " ms");
 		}
-		else if ( args[i].equals("-rf") ) {
-		    ztex.resetFpga();
-		}
-		else if ( args[i].equals("-uf") ) {
-		    i++;
-    	    	    if ( i >= args.length ) {
-			System.err.println("Error: Filename expected after -uf");
-			System.err.println(helpMsg);
-			System.exit(1);
-		    }
-		    System.out.println("FPGA configuration time: " + ztex.configureFpga( args[i], forceUpload ) + " ms");
-		} 
 		else if ( args[i].equals("-rm") ) {
 		    System.out.println("First free sector: " + ztex.flashFirstFreeSector() );
 		    ztex.flashResetBitstream();
@@ -216,7 +231,7 @@ class FWLoader {
 			System.exit(1);
 		    }
 		    System.out.println("First free sector: " + ztex.flashFirstFreeSector() );
-		    System.out.println("FPGA configuration time: " + ztex.flashUploadBitstream( args[i] ) + " ms");
+		    System.out.println("FPGA configuration time: " + ztex.flashUploadBitstream( args[i], bs ) + " ms");
 		    System.out.println("First free sector: " + ztex.flashFirstFreeSector() );
 		} 
 	    } 

@@ -53,6 +53,13 @@ void main(void)
     SYNCDELAY;
     EP4BCL = 0x80;	// skip package, (re)arm EP4
 
+    FIFORESET = 0x80;	// reset FIFO
+    SYNCDELAY;
+    FIFORESET = 2;
+    SYNCDELAY;
+    FIFORESET = 0x00;
+    SYNCDELAY;
+
     while (1) {	
 	if ( !(EP4CS & bmBIT2) ) {				// EP4 is not empty
 	    size = (EP4BCH << 8) | EP4BCL;

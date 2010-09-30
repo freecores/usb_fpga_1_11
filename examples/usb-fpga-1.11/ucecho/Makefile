@@ -18,7 +18,7 @@ IHXTARGETS=ucecho.ihx
 IHXEXTRADEPS=
 
 # Extra files that should be included into th jar archive
-EXTRAJARFILES=ucecho.ihx fpga/ucecho.bin
+EXTRAJARFILES=ucecho.ihx fpga/ucecho.bit
 
 ################################
 # DO NOT CHANAGE THE FOLLOWING #

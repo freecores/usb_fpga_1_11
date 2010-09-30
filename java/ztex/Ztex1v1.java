@@ -43,7 +43,7 @@
 	VC 0x32 : send FPGA configuration data (Bitstream)
 
     0.2  : Flash memory support
-	VR 0x40 : Flash state
+	VR 0x40 : read Flash state
 	    Returns:
 	        Offs	Description
 		0	1:enabled, 0:disabled
@@ -52,6 +52,14 @@
 		7	Error code
 	VR 0x41 : read from Flash
 	VR 0x42 : write to Flash
+    0.3  : Debug helper support
+	VR 0x28 : read debug data
+	    Returns:
+	        Offs	Description
+		0-1	number of messages
+		2	stack size in messages
+		3       message size in bytes
+		>=4	message stack
 */
 package ztex;
 
@@ -209,17 +217,69 @@ import ch.ntb.usb.*;
   *       </table>
   *     </td>
   *   </tr>
+  *   <tr>
+  *     <td bgcolor="#ffffff" valign="top">0.3</td>
+  *     <td bgcolor="#ffffff" valign="top" colspan=2>
+  *       Debug helper support<p>
+  *       <table bgcolor="#404040" cellspacing=1 cellpadding=6>
+  *         <tr>
+  *           <td bgcolor="#d0d0d0" valign="bottom"><b>Vendor request (VR)<br> or command (VC)</b></td>
+  *           <td bgcolor="#d0d0d0" valign="bottom"><b>Description</b></td>
+  *         </tr>
+  *         <tr>
+  *           <td bgcolor="#ffffff" valign="top">VR 0x28</td>
+  *           <td bgcolor="#ffffff" valign="top">Get debug data. Returns:
+  *             <table bgcolor="#404040" cellspacing=1 cellpadding=4>
+  *               <tr>
+  *                 <td bgcolor="#d0d0d0" valign="bottom"><b>Bytes</b></td>
+  *                 <td bgcolor="#d0d0d0" valign="bottom"><b>Description</b></td>
+  *               </tr>
+  *               <tr>
+  *                 <td bgcolor="#ffffff" valign="top">0-1</td>
+  *                 <td bgcolor="#ffffff" valign="top">Number of the last message</td>
+  *               </tr>
+  *               <tr>
+  *                 <td bgcolor="#ffffff" valign="top">2</td>
+  *                 <td bgcolor="#ffffff" valign="top">Stack size in messages</td>
+  *               </tr>
+  *               <tr>
+  *                 <td bgcolor="#ffffff" valign="top">3</td>
+  *                 <td bgcolor="#ffffff" valign="top">Message size in bytes</td>
+  *               </tr>
+  *               <tr>
+  *                 <td bgcolor="#ffffff" valign="top">&ge;4</td>
+  *                 <td bgcolor="#ffffff" valign="top">Message stack</td>
+  *               </tr>
+  *             </table>
+  *           </td>
+  *         </tr>
+  *       </table>
+  *     </td>
+  *   </tr>
   * </table>
   * @see ZtexDevice1
   * @see Ztex1
   */
 
 public class Ztex1v1 extends Ztex1 {
+    /** * Capability index for EEPROM support. */
+    public static final int CAPABILITY_EEPROM = 0;
+    /** * Capability index for FPGA configuration support. */
+    public static final int CAPABILITY_FPGA = 1;
+    /** * Capability index for FLASH memory support. */
+    public static final int CAPABILITY_FLASH = 2;
+    /** * Capability index for DEBUG helper support. */
+    public static final int CAPABILITY_DEBUG = 3;
+    /** * Capability index for AVR XMEGA support. */
+    public static final int CAPABILITY_XMEGA = 4;
+
     /** * The names of the capabilities */
     public static final String capabilityStrings[] = {
 	"EEPROM read/write" ,
 	"FPGA configuration" ,
-	"Flash memory support"
+	"Flash memory support",
+	"Debug helper",
+	"XMEGA support"
     };
     
     private boolean fpgaConfigured = false;
@@ -256,6 +316,12 @@ public class Ztex1v1 extends Ztex1 {
     public static final int FLASH_EC_WRITE_ERROR = 6;
     /** * Signals the the installed Flash memeory is not supported. */
     public static final int FLASH_EC_NOTSUPPORTED = 7;
+    
+    private int debugStackSize = -1;
+    private int debugMsgSize = -1;
+    private int debugLastMsg = 0;
+    /** * Is set by {@link #debugReadMessages(boolean,byte[])} and conains the number of new messages. */
+    public int debugNewMessages = 0;
 
 // ******* Ztex1v1 *************************************************************
 /** 
@@ -332,6 +398,16 @@ public class Ztex1v1 extends Ztex1 {
 	}
     }
 
+/** 
+  * Checks whether ZTEX descriptor 1 is available and interface 1 and a given capability are supported.
+  * @param i capability index (0..47)
+  * @throws InvalidFirmwareException if ZTEX descriptor 1 is not available or interface 1 is not supported.
+  * @throws CapabilityException if the given capability is not supported.
+  */
+    public void checkCapability ( int i ) throws InvalidFirmwareException, CapabilityException {
+	checkCapability(i/8, i%8);
+    }
+
 // ******* checkCompatible *****************************************************
 /**
   * Checks whether the given product ID is compatible to the device corresponding to this class and whether interface 1 is supported.
@@ -351,7 +427,7 @@ public class Ztex1v1 extends Ztex1 {
 // ******* getFpgaState ********************************************************
     private void getFpgaState () throws UsbException, InvalidFirmwareException, CapabilityException {
 	byte[] buffer = new byte[9];
-	checkCapability(0,1);
+	checkCapability(CAPABILITY_FPGA);
 	vendorRequest2(0x30, "getFpgaState", buffer, 9);
 	fpgaConfigured = buffer[0] == 0;
 	fpgaChecksum = buffer[1] & 0xff;
@@ -407,8 +483,42 @@ public class Ztex1v1 extends Ztex1 {
   * @throws CapabilityException if FPGA configuration is not supported by the firmware.
   */
     public void resetFpga () throws UsbException, InvalidFirmwareException, CapabilityException {
-	checkCapability(0,1);
+	checkCapability(CAPABILITY_FPGA);
 	vendorCommand(0x31, "resetFpga" );
+    }
+
+
+// ******* detectBitstreamBitOrder *********************************************
+    private int detectBitstreamBitOrder ( byte[] buf ) {
+	for ( int i=0; i<buf.length-3; i++ ) {
+	    if ( ((buf[i] & 255)==0xaa) && ((buf[i+1] & 255)==0x99) && ((buf[i+2] & 255)==0x55) && ((buf[i+3] & 255)==0x66) )
+		return 1;
+	    if ( ((buf[i] & 255)==0x55) && ((buf[i+1] & 255)==0x99) && ((buf[i+2] & 255)==0xaa) && ((buf[i+3] & 255)==0x66) )
+		return 0;
+	} 
+	System.err.println("Warning: Unable to determine bitstream bit order: no signature found");
+	return 0;
+    }
+
+// ******* swapBits ************************************************************
+    private void swapBits ( byte[][] buf, int size ) {
+	int j=0, k=0;
+	for (int i=0; i<size; i++ ) {
+	    while ( k >= buf[j].length ) {
+		j++;
+		k=0;
+	    }
+	    byte b = buf[j][k];
+	    buf[j][k] = (byte) ( ((b & 128) >> 7) |
+ 		     	         ((b &  64) >> 5) |
+		     	         ((b &  32) >> 3) |
+		     	         ((b &  16) >> 1) |
+		     	         ((b &   8) << 1) |
+		     	         ((b &   4) << 3) |
+		     	         ((b &   2) << 5) |
+		     	         ((b &   1) << 7) );
+	    k++;
+	}
     }
 
 // ******* configureFpga *******************************************************
@@ -417,6 +527,7 @@ public class Ztex1v1 extends Ztex1 {
   * Upload a Bitstream to the FPGA.
   * @param fwFileName The file name of the Bitstream. The file can be a regular file or a system resource (e.g. a file from the current jar archive).
   * @param force If set to true existing configurations will be overwritten. (By default an {@link AlreadyConfiguredException} is thrown).
+  * @param bs 0: disable bit swapping, 1: enable bit swapping, all other values: automatic detection of bit order.
   * @throws BitstreamReadException if an error occurred while attempting to read the Bitstream.
   * @throws BitstreamUploadException if an error occurred while attempting to upload the Bitstream.
   * @throws AlreadyConfiguredException if the FPGA is already configured.
@@ -424,17 +535,17 @@ public class Ztex1v1 extends Ztex1 {
   * @throws UsbException if a communication error occurs.
   * @throws CapabilityException if FPGA configuration is not supported by the firmware.
   */
-    public long configureFpga ( String fwFileName, boolean force ) throws BitstreamReadException, UsbException, BitstreamUploadException, AlreadyConfiguredException, InvalidFirmwareException, CapabilityException {
+    public long configureFpga ( String fwFileName, boolean force, int bs ) throws BitstreamReadException, UsbException, BitstreamUploadException, AlreadyConfiguredException, InvalidFirmwareException, CapabilityException {
 	final int transactionBytes = certainWorkarounds ? 256 : 2048;
 	long t0 = 0;
 
-	checkCapability(0,1);
+	checkCapability(CAPABILITY_FPGA);
 	
 	if ( !force && getFpgaConfiguration() )
 	    throw new AlreadyConfiguredException(); 
 
 // read the Bitstream file	
-        byte[][] buffer = new byte[4*1024*1024/transactionBytes][];
+        byte[][] buffer = new byte[16*1024*1024/transactionBytes][];
 	int size = 0;
 	try {
 	    InputStream inputStream = JInputStream.getInputStream( fwFileName );
@@ -461,6 +572,12 @@ public class Ztex1v1 extends Ztex1 {
 	}
 	if ( size < 64 || size % 64 == 0 ) 
 	    throw new BitstreamReadException("Invalid file size: " + size );
+
+// detect bitstream bit order and swap bits if necessary 
+	if ( bs<0 || bs>1 )
+	    bs = detectBitstreamBitOrder ( buffer[0] );
+	if ( bs == 1 )
+	    swapBits(buffer,size);
 	    
 // upload the Bitstream file	
 	for ( int tries=10; tries>0; tries-- ) {
@@ -470,7 +587,7 @@ public class Ztex1v1 extends Ztex1 {
 	    try {
 		t0 = -new Date().getTime();
 		int cs = 0;
-		int bs = 0;
+		bs = 0;
 		    
 	    	for ( int i=0; i<buffer.length && i*transactionBytes < size; i++ ) {
 		    int j = size-i*transactionBytes;
@@ -514,6 +631,21 @@ public class Ztex1v1 extends Ztex1 {
 	return t0;
     } 
 
+/**
+  * Upload a Bitstream to the FPGA.
+  * @param fwFileName The file name of the Bitstream. The file can be a regular file or a system resource (e.g. a file from the current jar archive).
+  * @param force If set to true existing configurations will be overwritten. (By default an {@link AlreadyConfiguredException} is thrown).
+  * @throws BitstreamReadException if an error occurred while attempting to read the Bitstream.
+  * @throws BitstreamUploadException if an error occurred while attempting to upload the Bitstream.
+  * @throws AlreadyConfiguredException if the FPGA is already configured.
+  * @throws InvalidFirmwareException if interface 1 is not supported.
+  * @throws UsbException if a communication error occurs.
+  * @throws CapabilityException if FPGA configuration is not supported by the firmware.
+  */
+    public long configureFpga ( String fwFileName, boolean force ) throws BitstreamReadException, UsbException, BitstreamUploadException, AlreadyConfiguredException, InvalidFirmwareException, CapabilityException {
+	return configureFpga(fwFileName, force, -1);
+    }
+
 // ******* eepromState *********************************************************
 // returns true if EEPROM is ready
 /**
@@ -526,7 +658,7 @@ public class Ztex1v1 extends Ztex1 {
   */
     public boolean eepromState ( ) throws UsbException, InvalidFirmwareException, CapabilityException {
 	byte[] buf = new byte[4];
-	checkCapability(0,0);
+	checkCapability(CAPABILITY_EEPROM);
 	vendorRequest2(0x3A, "EEPROM State", 0, 0, buf, 4);
 	eepromBytes = (buf[0] & 255) | (buf[1] & 255)<<8;
 	eepromChecksum = buf[2] & 255;
@@ -544,7 +676,7 @@ public class Ztex1v1 extends Ztex1 {
   * @throws CapabilityException if EEPROM access is not supported by the firmware.
   */
     public void eepromWrite ( int addr, byte[] buf, int length ) throws UsbException, InvalidFirmwareException, CapabilityException {
-	checkCapability(0,0);
+	checkCapability(CAPABILITY_EEPROM);
 	vendorCommand2( 0x39, "EEPROM Write", addr, 0, buf, length );
     	try {
     	    Thread.sleep( 10 );
@@ -564,7 +696,7 @@ public class Ztex1v1 extends Ztex1 {
   * @throws CapabilityException if EEPROM access is not supported by the firmware.
   */
     public void eepromRead ( int addr, byte[] buf, int length ) throws UsbException, InvalidFirmwareException, CapabilityException {
-	checkCapability(0,0);
+	checkCapability(CAPABILITY_EEPROM);
 	vendorRequest2( 0x38, "EEPROM Read", addr, 0, buf, length );		// sometimes a little bit slow
     	try {
     	    Thread.sleep( 10 );
@@ -591,7 +723,7 @@ public class Ztex1v1 extends Ztex1 {
 	int pages = 0;
 	byte[][] buffer = new byte[pagesMax][];
 
-	checkCapability(0,0);
+	checkCapability(CAPABILITY_EEPROM);
 	
 // load the ihx file
 	ZtexIhxFile1 ihxFile;
@@ -791,7 +923,7 @@ public class Ztex1v1 extends Ztex1 {
   */
     public boolean flashState () throws UsbException, InvalidFirmwareException, CapabilityException {
 	byte[] buf = new byte[8];
-	checkCapability(0,2);
+	checkCapability(CAPABILITY_FLASH);
 
 	// device may be busy due to initialization, we try it up to up to 4s
 	vendorRequest2(0x40, "Flash State", 0, 0, buf, 8);
@@ -818,13 +950,14 @@ public class Ztex1v1 extends Ztex1 {
 // reads the current error code
 /**
   * Gets the last Flash error from the device.
+  * @return The last error code.
   * @throws InvalidFirmwareException if interface 1 is not supported.
   * @throws UsbException if a communication error occurs.
   * @throws CapabilityException if Flash memory access is not supported by the firmware.
   */
     public int getFlashEC () throws UsbException, InvalidFirmwareException, CapabilityException {
 	byte[] buf = new byte[8];
-	checkCapability(0,2);
+	checkCapability(CAPABILITY_FLASH);
 	vendorRequest2(0x40, "Flash State", 0, 0, buf, 8);
     	flashEC = buf[7] & 255;
 	return flashEC;
@@ -841,7 +974,7 @@ public class Ztex1v1 extends Ztex1 {
   * @throws CapabilityException if Flash memory access is not possible.
   */
     public void flashReadSector ( int sector, byte[] buf ) throws UsbException, InvalidFirmwareException, CapabilityException {
-	checkCapability(0,2);
+	checkCapability(CAPABILITY_FLASH);
 	if ( ! flashEnabled() )
 	    throw new CapabilityException(this, "No Flash memory installed or");
 
@@ -864,7 +997,7 @@ public class Ztex1v1 extends Ztex1 {
   * @throws CapabilityException if Flash memory access is not possible.
   */
     public void flashWriteSector ( int sector, byte[] buf ) throws UsbException, InvalidFirmwareException, CapabilityException {
-	checkCapability(0,2);
+	checkCapability(CAPABILITY_FLASH);
 	if ( ! flashEnabled() )
 	    throw new CapabilityException(this, "No Flash memory installed or");
 
@@ -948,7 +1081,7 @@ public class Ztex1v1 extends Ztex1 {
   */
     public boolean printMmcState ( ) throws UsbException, InvalidFirmwareException, CapabilityException {
 	byte[] buf = new byte[23];
-	checkCapability(0,2);
+	checkCapability(CAPABILITY_FLASH);
 	vendorRequest2(0x43, "MMC State", 0, 0, buf, 23);
 	System.out.println("status=" + Integer.toBinaryString(256+(buf[0] & 255)).substring(1) + "." + Integer.toBinaryString(256+(buf[1] & 255)).substring(1) + 
 		"   lastCmd=" + buf[3] + 
@@ -1004,20 +1137,21 @@ public class Ztex1v1 extends Ztex1 {
   * <p>
   * The first sector of the Bitstream is sector 1.
   * @param fwFileName The file name of the Bitstream. The file can be a regular file or a system resource (e.g. a file from the current jar archive).
+  * @param bs 0: disable bit swapping, 1: enable bit swapping, all other values: automatic detection of bit order.
   * @throws InvalidFirmwareException if interface 1 is not supported.
   * @throws UsbException if a communication error occurs.
   * @throws CapabilityException if Flash memory access is not possible.
   * @throws BitstreamReadException if an error occurred while attempting to read the Bitstream.
   */
-    public long flashUploadBitstream ( String fwFileName ) throws BitstreamReadException, UsbException, InvalidFirmwareException, CapabilityException {
-	checkCapability(0,1);
-	checkCapability(0,2);
+    public long flashUploadBitstream ( String fwFileName, int bs ) throws BitstreamReadException, UsbException, InvalidFirmwareException, CapabilityException {
+	checkCapability(CAPABILITY_FPGA);
+	checkCapability(CAPABILITY_FLASH);
 	if ( ! flashEnabled() )
 	    throw new CapabilityException(this, "No Flash memory installed or");
 	getFpgaState();
 	
 // read the Bitstream file	
-        byte[][] buffer = new byte[2048][];
+        byte[][] buffer = new byte[32768][];
 	int i,j;
 	try {
 	    InputStream inputStream = JInputStream.getInputStream( fwFileName );
@@ -1025,19 +1159,6 @@ public class Ztex1v1 extends Ztex1 {
 	    for ( i=0; i<buffer.length && j==flashSectorSize; i++ ) {
 		buffer[i] = new byte[flashSectorSize]; 
 		j = inputStream.read( buffer[i] );
-		if ( fpgaFlashBitSwap ) {
-		    for (int k=0; k<flashSectorSize; k++ ) {
-			byte b = buffer[i][k];
-			buffer[i][k] = (byte) ( ((b & 128) >> 7) |
- 		     		    	        ((b &  64) >> 5) |
-		     		    	        ((b &  32) >> 3) |
-		     		                ((b &  16) >> 1) |
-		     		                ((b &   8) << 1) |
-		     		                ((b &   4) << 3) |
-		     		                ((b &   2) << 5) |
-		     		                ((b &   1) << 7));
-		    }
-		}
 		if ( j < 0 ) 
 		    j = 0;
 	    }
@@ -1052,6 +1173,12 @@ public class Ztex1v1 extends Ztex1 {
 	catch (IOException e) {
 	    throw new BitstreamReadException(e.getLocalizedMessage());
 	}
+
+// detect bitstream bit order and swap bits if necessary 
+	if ( bs<0 || bs>1 )
+	    bs = detectBitstreamBitOrder(buffer[0]);
+	if ( fpgaFlashBitSwap != (bs==1) )
+	    swapBits( buffer, flashSectorSize*i );
 
 // upload the Bitstream file	
 	byte[] sector = new byte[flashSectorSize];
@@ -1074,6 +1201,21 @@ public class Ztex1v1 extends Ztex1 {
 	return new Date().getTime() - t0;
     } 
 
+/**
+  * Uploads a Bitstream to the Flash.
+  * This allows the firmware to load the Bitstream from Flash. Together with installation of the firmware in EEPROM
+  * it is possible to construct fully autonomous devices.
+  * See {@link #flashUploadBitstream(String,int)} for further details.
+  * @param fwFileName The file name of the Bitstream. The file can be a regular file or a system resource (e.g. a file from the current jar archive).
+  * @throws InvalidFirmwareException if interface 1 is not supported.
+  * @throws UsbException if a communication error occurs.
+  * @throws CapabilityException if Flash memory access is not possible.
+  * @throws BitstreamReadException if an error occurred while attempting to read the Bitstream.
+  */
+    public long flashUploadBitstream ( String fwFileName ) throws BitstreamReadException, UsbException, InvalidFirmwareException, CapabilityException {
+	return flashUploadBitstream(fwFileName, -1);
+    }
+
 // ******* flashResetBitstream *************************************************
 // Clears a Bitstream from the Flash.
 /**
@@ -1085,7 +1227,7 @@ public class Ztex1v1 extends Ztex1 {
   * @throws CapabilityException if Flash memory access is not possible.
   */
     public void flashResetBitstream ( ) throws UsbException, InvalidFirmwareException, CapabilityException {
-	checkCapability(0,2);
+	checkCapability(CAPABILITY_FLASH);
 	if ( ! flashEnabled() )
 	    throw new CapabilityException(this, "No Flash memory installed or");
 	byte[] sector = new byte[flashSectorSize];
@@ -1113,7 +1255,7 @@ public class Ztex1v1 extends Ztex1 {
   * @throws CapabilityException if Flash memory access is not possible.
   */
     public int flashFirstFreeSector ( ) throws UsbException, InvalidFirmwareException, CapabilityException {
-	checkCapability(0,2);
+	checkCapability(CAPABILITY_FLASH);
 	if ( ! flashEnabled() )
 	    throw new CapabilityException(this, "No Flash memory installed or");
 
@@ -1127,6 +1269,82 @@ public class Ztex1v1 extends Ztex1 {
 	if (sector[6]!=1 || sector[7]!=1 )
 	    return 0;
 	return (sector[8] & 255) + ((sector[9] & 255) << 8) + 1;
+    }
+    
+
+// ******* debugStackSize ******************************************************
+/**
+  * Returns the size of message stack in messages.
+  * @return the size of message stack in messages.
+  * @throws InvalidFirmwareException if interface 1 is not supported.
+  * @throws UsbException if a communication error occurs.
+  * @throws CapabilityException if Flash memory access is not possible.
+  */
+    public int debugStackSize ( ) throws UsbException, InvalidFirmwareException, CapabilityException {
+	checkCapability(CAPABILITY_DEBUG);
+	if ( debugStackSize<=0 || debugMsgSize<=0 ) {
+	    byte[] buf = new byte[7];
+	    vendorRequest2(0x28, "Read debug data", 0, 0, buf, 4);
+	    debugStackSize = buf[2] & 255;
+	    debugMsgSize = buf[3] & 255;
+	}
+	return debugStackSize;
+    }
+
+// ******* debugMsgSize ********************************************************
+/**
+  * Returns the size of messages in bytes.
+  * @return the size of messages in bytes.
+  * @throws InvalidFirmwareException if interface 1 is not supported.
+  * @throws UsbException if a communication error occurs.
+  * @throws CapabilityException if Flash memory access is not possible.
+  */
+    public int debugMsgSize ( ) throws UsbException, InvalidFirmwareException, CapabilityException {
+	checkCapability(CAPABILITY_DEBUG);
+	if ( debugMsgSize<=0 ) 
+	    debugStackSize();
+	
+	return debugMsgSize;
+    }
+
+// ******* debugLastMsg ********************************************************
+/**
+  * Returns the number of the last message read out by {@link #debugReadMessages(boolean,byte[])}
+  * @return the number of the last message read out by {@link #debugReadMessages(boolean,byte[])}
+  */
+    public final int debugLastMsg ( )  {
+	return debugLastMsg;
+    }
+
+// ******* debugReadMessages ***************************************************
+/**
+  * Reads debug messages from message stack.
+  * The number of messages stored in buf is returned. The total number of new messages is stored in {@link #debugNewMessages}.
+  * The number of the latest message is returned by {@link #debugLastMsg()}.
+  * @param all If true, all messages from stack are written to buf. If it is false, only the new messages are written to buf.
+  * @param buf The buffer to store the messages.
+  * @return the size of messages stored in buffer.
+  * @throws InvalidFirmwareException if interface 1 is not supported.
+  * @throws UsbException if a communication error occurs.
+  * @throws CapabilityException if Flash memory access is not possible.
+  */
+    public int debugReadMessages ( boolean all, byte[] buf ) throws UsbException, InvalidFirmwareException, CapabilityException {
+	checkCapability(CAPABILITY_DEBUG);
+	byte buf2[] = new byte[ debugStackSize()*debugMsgSize() + 4 ];
+	vendorRequest2(0x28, "Read debug data", 0, 0, buf2, buf2.length);
+	int lm = (buf2[0] & 255) | ((buf2[1] & 255) << 8);
+	debugNewMessages = lm - debugLastMsg;
+	
+	int r = Math.min( Math.min( buf.length/debugMsgSize() , debugStackSize ), lm);
+	if ( !all ) r = Math.min(r,debugNewMessages);
+	for (int i = 0; i<r; i++) {
+	    int k=(lm-r+i) % debugStackSize;
+	    for (int j=0; j<debugMsgSize; j++ )
+		buf[i*debugMsgSize+j] = buf2[k*debugMsgSize+j+4];
+	}
+	
+	debugLastMsg = lm;
+	return r;
     }
     
 // ******* toString ************************************************************

@@ -127,7 +127,7 @@ static void SUDAV_ISR () interrupt
 		    EP0BCL = 2;
 		    break;
 		case 0x81:		// interface (reserved)
-		    EP0BUF[0] = 0; 	// Always return zeros
+		    EP0BUF[0] = 0; 	// always return zeros
 		    EP0BUF[1] = 0;
 		    EP0BCH = 0;
 		    EP0BCL = 2;
@@ -301,7 +301,7 @@ static void SUDAV_ISR () interrupt
 	case 0x40: 					// vendor command
 	    /* vendor commands may overlap if they are send without pause. To avoid
 	       synchronization problems the setup sequences are executed in EP0OUT_ISR, i.e.
-	       after the first packet of payload date received. */
+	       after the first packet of payload data received. */
 	    if ( SETUPDAT[7]!=0 || SETUPDAT[6]!=0 ) {
 		ep0_vendor_cmd_setup = 1;
 		EP0BCL = 0;
