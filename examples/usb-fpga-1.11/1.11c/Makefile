@@ -1,4 +1,4 @@
-DIRS=flashdemo flashbench standalone 1.11b 1.11c
+DIRS=ucecho intraffic memtest
 
 .PHONY: default all clean distclean
 
