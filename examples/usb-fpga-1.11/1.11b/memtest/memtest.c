@@ -1,6 +1,6 @@
 /*!
-   memtest -- DDR SDRAM FIFO for testing memory on ZTEX USB FPGA Module 1.11
-   Copyright (C) 2009-2010 ZTEX e.K.
+   memtest -- DDR SDRAM FIFO for testing memory on ZTEX USB-FPGA Module 1.11b
+   Copyright (C) 2009-2011 ZTEX GmbH.
    http://www.ztex.de
 
    This program is free software; you can redistribute it and/or modify
@@ -38,7 +38,7 @@ IDENTITY_UFM_1_11(10.12.0.0,0);
 #define[PRODUCT_STRING]["memtest example for UFM 1.11"]
 
 // 0 : counter mode; 1: shift pattern mode 
-xdata BYTE mode = 0;
+__xdata BYTE mode = 0;
 
 // this is called automatically after FPGA configuration
 #define[POST_FPGA_CONFIG][POST_FPGA_CONFIG

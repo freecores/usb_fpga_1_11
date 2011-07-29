@@ -1,6 +1,6 @@
 /*!
    ucecho -- uppercase conversion example for all EZ-USB devices
-   Copyright (C) 2009-2010 ZTEX e.K.
+   Copyright (C) 2009-2011 ZTEX GmbH.
    http://www.ztex.de
 
    This program is free software; you can redistribute it and/or modify
@@ -52,7 +52,7 @@ void main(void)
 	    if ( size>0 && size<=512 && !(EP2CS & bmBIT3)) {	// EP2 is not full
 		for ( i=0; i<size; i++ ) {
 		    b = EP4FIFOBUF[i];		// data from EP4 ... 
-		    if ( b>='a' && b<='z' )	// ... is converted to uppercase ...
+		    if ( b>=(BYTE)'a' && b<=(BYTE)'z' )	// ... is converted to uppercase ...
 			b-=32;
 		    EP2FIFOBUF[i] = b;		// ... and written back to EP2 buffer
 		} 

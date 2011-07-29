@@ -1,6 +1,6 @@
 /*!
-   Firmware / Bitstream loader for the ZTEX Firmware Kit
-   Copyright (C) 2009-2010 ZTEX e.K.
+   Firmware / Bitstream loader for the ZTEX EZ-USB FX2 SDK
+   Copyright (C) 2009-2011 ZTEX GmbH.
    http://www.ztex.de
 
    This program is free software; you can redistribute it and/or modify
@@ -29,6 +29,18 @@ import ztex.*;
 
 class FWLoader {
 
+// ******* checkSnString *******************************************************
+// make sure that snString is 10 chars long
+    private static String checkSnString ( String snString ) {
+    	if ( snString.length()>10 ) {
+    	    snString = snString.substring(0,10);
+	    System.err.println( "Serial number too long (max. 10 characters), truncated to `" + snString + "'" );
+	}
+	while ( snString.length()<10 )
+	    snString = '0' + snString;
+	return snString;
+    }
+
 // ******* main ****************************************************************
     public static void main (String args[]) {
 	LibusbJava.usb_init();
@@ -36,17 +48,19 @@ class FWLoader {
 	final String helpMsg = new String (
 			"Global parameters:\n"+
 			"    -c               Scan for Cypress EZ-USB devices without ZTEX firmware\n"+
-			"    -v <VID> <PID>   Scan for devices with ZTEX firmware and the given Vendor ID and Product ID\n"+
+			"    -v <VID> <PID>   Scan for devices with given Vendor ID and Product ID\n"+
 			"    -vc              Equal to -v 0x4b4 0x8613\n"+
-			"    -d <number>      Device Number (default: 0)\n"+
+			"    -s <sn string>   Only scan for devices with that serial number\n"+
+			"    -d <number>      Device Number (default: 0, use -p to get a list)\n"+
 			"    -f               Force uploads\n"+
-			"    -p               Print bus info\n"+
+			"    -p               Print a list of available devices\n"+
 			"    -w               Enable certain workarounds\n"+
 			"    -h               This help \n\n"+
 			"Ordered parameters:\n"+
 			"    -i               Info\n"+
 			"    -ii              Info + capabilities\n"+
 			"    -if              Read FPGA state\n"+
+			"    -ss <sn string>  Set the serial number of EZ-USB firmware (used with -uu or -ue)\n"+
 			"    -ru              Reset EZ-USB Microcontroller\n"+
 			"    -uu <ihx file>   Upload EZ-USB Firmware\n"+
 			"    -bs 0|1|A        Bit swapping for bitstreams: 0: disable, 1: enable, A: automatic detection\n"+
@@ -55,9 +69,13 @@ class FWLoader {
 			"    -re              Reset EEPROM Firmware\n"+
 			"    -ue <ihx file>   Upload Firmware to EEPROM\n"+
 			"    -rm              Reset FLASH bitstream\n"+
-			"    -um <bitstream>  Upload bitstream to Flash");
-	
-	
+			"    -um <bitstream>  Upload bitstream to Flash\n"+
+			"    -uxf <ihx file>  Upload Firmware / data  to ATxmega Flash\n"+
+			"    -uxe <ihx file>  Upload data to ATxmega EEPROM\n"+
+			"    -rxf <index>     Read ATxmega Fuse\n" +
+			"    -wxf <index> <bitmask> <value>  Write ATxmega Fuse\n" +
+			"Serial number strings (<sn string>) must be 10 chars long, if shorter filled with 0's." );
+			
 // process global parameters
 	try {
 
@@ -68,7 +86,13 @@ class FWLoader {
 	    boolean forceUpload = false;
 	    boolean printBus = false;
 	    boolean workarounds = false;
+	    String snString = null;
 	    int bs = -1;
+	    
+	    if ( args.length == 0 ) {
+	    	    System.err.println(helpMsg);
+    	    	    System.exit(1);
+	    }
 	    
 	    for (int i=0; i<args.length; i++ ) {
 		if ( args[i].equals("-c") ) {
@@ -124,14 +148,26 @@ class FWLoader {
 			System.exit(1);
 		    }
 		}
+		else if ( args[i].equals("-s") ) {
+		    i++;
+		    if (i>=args.length) {
+			System.err.println("Error: String expected after -s");
+			System.err.println(helpMsg);
+			System.exit(1);
+		    }
+    		    snString = checkSnString(args[i]);
+		}
 		else if ( args[i].equals("-h") ) {
 		        System.err.println(helpMsg);
 	    	        System.exit(0);
 		}
 		else if ( args[i].equals("-i") || args[i].equals("-ii") || args[i].equals("-if") || args[i].equals("-ru") || args[i].equals("-rf") || args[i].equals("-re") || args[i].equals("-rm") ) {
 		}
-		else if ( args[i].equals("-uu") || args[i].equals("-uf") || args[i].equals("-ue") || args[i].equals("-um") || args[i].equals("-bs") ) {
+		else if ( args[i].equals("-uu") || args[i].equals("-uf") || args[i].equals("-ue") || args[i].equals("-um") || args[i].equals("-bs") || args[i].equals("-uxf")  || args[i].equals("-uxe") || args[i].equals("-rxf") || args[i].equals("-ss")) {
 		    i+=1;
+		}
+		else if ( args[i].equals("-wxf")  ) {
+		    i+=3;
 		}
 		else {
 		    System.err.println("Error: Invalid Parameter: "+args[i]);
@@ -141,7 +177,7 @@ class FWLoader {
 	    }
 	    
 // process ordered parameters
-	    ZtexScanBus1 bus = new ZtexScanBus1( usbVendorId, usbProductId, cypress, false, 1);
+	    ZtexScanBus1 bus = new ZtexScanBus1( usbVendorId, usbProductId, cypress, false, 1, snString);
 	    if ( bus.numberOfDevices() <= 0 ) {
 		System.err.println("No devices found");
 		System.exit(0);
@@ -151,7 +187,8 @@ class FWLoader {
 
 	    Ztex1v1 ztex = new Ztex1v1 ( bus.device(devNum) );
 	    ztex.certainWorkarounds = workarounds;
-	
+	    
+	    snString = null;
 	    for (int i=0; i<args.length; i++ ) {
 		if ( args[i].equals("-i") ) {
 		    System.out.println( ztex );
@@ -169,6 +206,15 @@ class FWLoader {
 		if ( args[i].equals("-if") ) {
 		    ztex.printFpgaState();
 		} 
+		else if ( args[i].equals("-ss") ) {
+		    i++;
+    	    	    if ( i >= args.length ) {
+			System.err.println("Error: String expected after -ss");
+			System.err.println(helpMsg);
+			System.exit(1);
+		    }
+    		    snString = checkSnString(args[i]);
+		}
 		else if ( args[i].equals("-ru") ) {
 		    ztex.resetEzUsb();
 		} 
@@ -179,7 +225,10 @@ class FWLoader {
 			System.err.println(helpMsg);
 			System.exit(1);
 		    }
-		    System.out.println("Firmware upload time: " + ztex.uploadFirmware( args[i], forceUpload ) + " ms");
+		    ZtexIhxFile1 ihxFile = new ZtexIhxFile1( args[i] );
+		    if ( snString != null ) 
+		        ihxFile.setSnString( snString );
+		    System.out.println("Firmware upload time: " + ztex.uploadFirmware( ihxFile, forceUpload ) + " ms");
 		}
 		else if ( args[i].equals("-bs") ) {
 		    i++;
@@ -216,7 +265,10 @@ class FWLoader {
 			System.err.println(helpMsg);
 			System.exit(1);
 		    }
-		    System.out.println("Firmware to EEPROM upload time: " + ztex.eepromUpload( args[i], forceUpload ) + " ms");
+		    ZtexIhxFile1 ihxFile = new ZtexIhxFile1( args[i] );
+		    if ( snString != null )
+		        ihxFile.setSnString(snString);
+		    System.out.println("Firmware to EEPROM upload time: " + ztex.eepromUpload( ihxFile, forceUpload ) + " ms");
 		}
 		else if ( args[i].equals("-rm") ) {
 		    System.out.println("First free sector: " + ztex.flashFirstFreeSector() );
@@ -233,6 +285,76 @@ class FWLoader {
 		    System.out.println("First free sector: " + ztex.flashFirstFreeSector() );
 		    System.out.println("FPGA configuration time: " + ztex.flashUploadBitstream( args[i], bs ) + " ms");
 		    System.out.println("First free sector: " + ztex.flashFirstFreeSector() );
+		}
+		else if ( args[i].equals("-uxf") ) {
+		    i++;
+    	    	    if ( i >= args.length ) {
+			System.err.println("Error: Filename expected after -uxf");
+			System.err.println(helpMsg);
+			System.exit(1);
+		    }
+		    System.out.println("Firmware to ATxmega Flash upload time: " + ztex.xmegaWriteFirmware( new IhxFile(args[i]) ) + " ms");
+		} 
+		else if ( args[i].equals("-uxe") ) {
+		    i++;
+    	    	    if ( i >= args.length ) {
+			System.err.println("Error: Filename expected after -uxe");
+			System.err.println(helpMsg);
+			System.exit(1);
+		    }
+		    System.out.println("Firmware to ATxmega Flash upload time: " + ztex.xmegaWriteEeprom( new IhxFile(args[i]) ) + " ms");
+		} 
+		else if ( args[i].equals("-rxf") ) {
+		    i++;
+		    int j = 0;
+		    try {
+			if (i>=args.length) 
+			    throw new Exception();
+    			j = Integer.parseInt( args[i] );
+		    } 
+		    catch (Exception e) {
+			System.err.println("Error: Index number expected after -rxf");
+			System.err.println(helpMsg);
+			System.exit(1);
+		    }
+		    System.out.println("Fuse " + j + ": 0b" + Integer.toBinaryString(256 | ztex.xmegaFuseRead ( j )).substring(1));
+		} 
+		else if ( args[i].equals("-wxf") ) {
+		    i++;
+		    int j=0, k=0, l=0;
+		    try {
+			if (i>=args.length) 
+			    throw new Exception();
+    			j = Integer.parseInt( args[i] );
+		    } 
+		    catch (Exception e) {
+			System.err.println("Error: Index number expected after -wxf");
+			System.err.println(helpMsg);
+			System.exit(1);
+		    }
+		    i++;
+		    try {
+			if (i>=args.length) 
+			    throw new Exception();
+    			k = Integer.parseInt( args[i] );
+		    } 
+		    catch (Exception e) {
+			System.err.println("Error: Bitmask expected after -wxf <index>");
+			System.err.println(helpMsg);
+			System.exit(1);
+		    }
+		    i++;
+		    try {
+			if (i>=args.length) 
+			    throw new Exception();
+    			l = Integer.parseInt( args[i] );
+		    } 
+		    catch (Exception e) {
+			System.err.println("Error: Value expected after -wxf <index> <bitmask>");
+			System.err.println(helpMsg);
+			System.exit(1);
+		    }
+		    ztex.xmegaFuseWrite( j, (ztex.xmegaFuseRead(j) & ~k) | l );
 		} 
 	    } 
 	} 

@@ -1,6 +1,6 @@
 /*!
-   Java Driver API for the ZTEX Firmware Kit
-   Copyright (C) 2009-2010 ZTEX e.K.
+   Java host software API of ZTEX EZ-USB FX2 SDK
+   Copyright (C) 2009-2011 ZTEX GmbH.
    http://www.ztex.de
 
    This program is free software; you can redistribute it and/or modify

@@ -1,6 +1,6 @@
 /*!
-   flashdemo -- demo for Flash memory access from firmware and host software for ZTEX USB FPGA Module 1.2
-   Copyright (C) 2009-2010 ZTEX e.K.
+   flashdemo -- demo for Flash memory access from firmware and host software for ZTEX USB-FPGA Module 1.2
+   Copyright (C) 2009-2011 ZTEX GmbH.
    http://www.ztex.de
 
    This program is free software; you can redistribute it and/or modify
@@ -28,20 +28,20 @@ ENABLE_FLASH;
 // this product string is also used for identification by the host software
 #define[PRODUCT_STRING]["Flash demo for UFM 1.2"]
 
-code char flash_string[] = "Hello World!";
+__code char flash_string[] = "Hello World!";
 
 // include the main part of the firmware kit, define the descriptors, ...
 #include[ztex.h]
 
 void main(void)	
 {
-    xdata DWORD sector;
+    __xdata DWORD sector;
 
     init_USB();						// init everything
 
     if ( flash_enabled ) {
 	flash_read_init( 0 ); 				// prepare reading sector 0
-	flash_read((xdata BYTE*) &sector, 4); 		// read the number of last sector 
+	flash_read((__xdata BYTE*) &sector, 4); 	// read the number of last sector 
 	flash_read_finish(flash_sector_size - 4);	// dummy-read the rest of the sector + finish read operation
 
 	sector++;
@@ -49,13 +49,15 @@ void main(void)
 	    sector = 1;
 	}
 
-	flash_write_init( 0 ); 				// prepare writing sector 0
-	flash_write((xdata BYTE*) &sector, 4); 		// write the current sector number
-	flash_write_finish(flash_sector_size - 4);	// dummy-write the rest of the sector + finish write operation
+	flash_write_init( 0 ); 					// prepare writing sector 0
+	flash_write((__xdata BYTE*) &sector, 4); 		// write the current sector number
+	flash_write_finish_sector(flash_sector_size - 4);	// dummy-write the rest of the sector + CRC
+	flash_write_finish();					// finish write operation
 
-	flash_write_init( sector ); 			// prepare writing sector sector
-	flash_write((xdata BYTE*) flash_string, sizeof(flash_string)); 	// write the string 
-	flash_write_finish(flash_sector_size - sizeof(flash_string));	// dummy-write the rest of the sector + finish write operation
+	flash_write_init( sector ); 						// prepare writing sector sector
+	flash_write((__xdata BYTE*) flash_string, sizeof(flash_string)); 	// write the string 
+	flash_write_finish_sector(flash_sector_size - sizeof(flash_string));	// dummy-write the rest of the sector + CRC
+	flash_write_finish();							// finish write operation
     }
 
     while (1) {	}					//  twiddle thumbs

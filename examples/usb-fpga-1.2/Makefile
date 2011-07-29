@@ -1,4 +1,4 @@
-DIRS=ucecho flashdemo flashbench intraffic standalone
+DIRS=ucecho flashdemo flashbench intraffic standalone nvmtest lightshow
 
 .PHONY: default all clean distclean
 

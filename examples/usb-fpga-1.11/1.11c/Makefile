@@ -1,4 +1,4 @@
-DIRS=ucecho intraffic memtest
+DIRS=ucecho intraffic memtest lightshow
 
 .PHONY: default all clean distclean
 

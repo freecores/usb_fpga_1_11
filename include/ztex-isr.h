@@ -1,6 +1,6 @@
 /*!
-   ZTEX Firmware Kit for EZ-USB Microcontrollers
-   Copyright (C) 2009-2010 ZTEX e.K.
+   ZTEX Firmware Kit for EZ-USB FX2 Microcontrollers
+   Copyright (C) 2009-2011 ZTEX GmbH.
    http://www.ztex.de
 
    This program is free software; you can redistribute it and/or modify
@@ -23,10 +23,10 @@
 #ifndef[ZTEX_ISR_H]
 #define[ZTEX_ISR_H]
 
-xdata BYTE ep0_prev_setup_request = 0xff;
-xdata BYTE ep0_vendor_cmd_setup = 0;
+__xdata BYTE ep0_prev_setup_request = 0xff;
+__xdata BYTE ep0_vendor_cmd_setup = 0;
 
-xdata WORD ISOFRAME_COUNTER[4] = {0, 0, 0, 0}; 	// counters for iso frames automatically reset by sync frame request
+__xdata WORD ISOFRAME_COUNTER[4] = {0, 0, 0, 0}; 	// counters for iso frames automatically reset by sync frame request
 
 /* *********************************************************************
    ***** toggleData ****************************************************
@@ -110,7 +110,7 @@ static void ep0_vendor_cmd_su() {
 /* *********************************************************************
    ***** SUDAV_ISR *****************************************************
    ********************************************************************* */
-static void SUDAV_ISR () interrupt
+static void SUDAV_ISR () __interrupt
 {
     BYTE a;
     ep0_prev_setup_request = bRequest;
@@ -322,7 +322,7 @@ static void SUDAV_ISR () interrupt
 /* *********************************************************************
    ***** SOF_ISR ******************************************************* 
    ********************************************************************* */
-void SOF_ISR() interrupt
+void SOF_ISR() __interrupt
 {
         EXIF &= ~bmBIT4;
 	USBIRQ = bmBIT1;
@@ -331,7 +331,7 @@ void SOF_ISR() interrupt
 /* *********************************************************************
    ***** SUTOK_ISR ***************************************************** 
    ********************************************************************* */
-void SUTOK_ISR() interrupt 
+void SUTOK_ISR() __interrupt 
 {
         EXIF &= ~bmBIT4;
 	USBIRQ = bmBIT2;
@@ -340,7 +340,7 @@ void SUTOK_ISR() interrupt
 /* *********************************************************************
    ***** SUSP_ISR ****************************************************** 
    ********************************************************************* */
-void SUSP_ISR() interrupt
+void SUSP_ISR() __interrupt
 {
         EXIF &= ~bmBIT4;
 	USBIRQ = bmBIT3;
@@ -349,7 +349,7 @@ void SUSP_ISR() interrupt
 /* *********************************************************************
    ***** URES_ISR ****************************************************** 
    ********************************************************************* */
-void URES_ISR() interrupt
+void URES_ISR() __interrupt
 {
         EXIF &= ~bmBIT4;
 	USBIRQ = bmBIT4;
@@ -358,7 +358,7 @@ void URES_ISR() interrupt
 /* *********************************************************************
    ***** HSGRANT_ISR *************************************************** 
    ********************************************************************* */
-void HSGRANT_ISR() interrupt
+void HSGRANT_ISR() __interrupt
 {
         EXIF &= ~bmBIT4;
 	USBIRQ = bmBIT5;
@@ -367,7 +367,7 @@ void HSGRANT_ISR() interrupt
 /* *********************************************************************
    ***** EP0ACK_ISR **************************************************** 
    ********************************************************************* */
-void EP0ACK_ISR() interrupt
+void EP0ACK_ISR() __interrupt
 {
         EXIF &= ~bmBIT4;	// clear USB interrupt flag
 	USBIRQ = bmBIT6;	// clear EP0ACK IRQ
@@ -376,7 +376,7 @@ void EP0ACK_ISR() interrupt
 /* *********************************************************************
    ***** EP0IN_ISR *****************************************************
    ********************************************************************* */
-static void EP0IN_ISR () interrupt
+static void EP0IN_ISR () __interrupt
 {
     EUSB = 0;			// block all USB interrupts
     ep0_payload_update();
@@ -394,7 +394,7 @@ static void EP0IN_ISR () interrupt
 /* *********************************************************************
    ***** EP0OUT_ISR ****************************************************
    ********************************************************************* */
-static void EP0OUT_ISR () interrupt
+static void EP0OUT_ISR () __interrupt
 {
     EUSB = 0;			// block all USB interrupts
     if ( ep0_vendor_cmd_setup ) {
@@ -423,7 +423,7 @@ static void EP0OUT_ISR () interrupt
 /* *********************************************************************
    ***** EP1IN_ISR *****************************************************
    ********************************************************************* */
-void EP1IN_ISR() interrupt
+void EP1IN_ISR() __interrupt
 {
     EXIF &= ~bmBIT4;
     EPIRQ = bmBIT2;
@@ -433,7 +433,7 @@ void EP1IN_ISR() interrupt
 /* *********************************************************************
    ***** EP1OUT_ISR ****************************************************
    ********************************************************************* */
-void EP1OUT_ISR() interrupt
+void EP1OUT_ISR() __interrupt
 {
     EXIF &= ~bmBIT4;
     EPIRQ = bmBIT3;
@@ -442,7 +442,7 @@ void EP1OUT_ISR() interrupt
 /* *********************************************************************
    ***** EP2_ISR *******************************************************
    ********************************************************************* */
-void EP2_ISR() interrupt
+void EP2_ISR() __interrupt
 {
     EXIF &= ~bmBIT4;
     EPIRQ = bmBIT4;
@@ -451,7 +451,7 @@ void EP2_ISR() interrupt
 /* *********************************************************************
    ***** EP4_ISR *******************************************************
    ********************************************************************* */
-void EP4_ISR() interrupt
+void EP4_ISR() __interrupt
 {
     EXIF &= ~bmBIT4;
     EPIRQ = bmBIT5;
@@ -460,7 +460,7 @@ void EP4_ISR() interrupt
 /* *********************************************************************
    ***** EP6_ISR *******************************************************
    ********************************************************************* */
-void EP6_ISR() interrupt
+void EP6_ISR() __interrupt
 {
     EXIF &= ~bmBIT4;
     EPIRQ = bmBIT6;
@@ -469,7 +469,7 @@ void EP6_ISR() interrupt
 /* *********************************************************************
    ***** EP8_ISR *******************************************************
    ********************************************************************* */
-void EP8_ISR() interrupt
+void EP8_ISR() __interrupt
 {
     EXIF &= ~bmBIT4;
     EPIRQ = bmBIT7;

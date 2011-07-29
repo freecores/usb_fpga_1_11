@@ -1,6 +1,6 @@
 /*!
-   memtest -- DDR SDRAM FIFO for testing memory on ZTEX USB FPGA Module 1.11
-   Copyright (C) 2009-2010 ZTEX e.K.
+   memtest -- DDR SDRAM FIFO for testing memory on ZTEX USB-FPGA Module 1.11c
+   Copyright (C) 2009-2011 ZTEX GmbH.
    http://www.ztex.de
 
    This program is free software; you can redistribute it and/or modify
@@ -31,7 +31,7 @@ class ParameterException extends Exception {
     public final static String helpMsg = new String (
 		"Parameters:\n"+
 		"    -d <number>       Device Number (default: 0)\n" +
-		"    -c 	       Counter test aptttern\n" +
+		"    -c 	       Counter test pattern\n" +
 		"    -f 	       Force uploads\n" +
 		"    -p                Print bus info\n" +
 		"    -w                Enable certain workarounds\n"+

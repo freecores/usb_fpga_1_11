@@ -1,6 +1,6 @@
 /*!
-   ZTEX Firmware Kit for EZ-USB Microcontrollers
-   Copyright (C) 2009-2010 ZTEX e.K.
+   ZTEX Firmware Kit for EZ-USB FX2 Microcontrollers
+   Copyright (C) 2009-2011 ZTEX GmbH.
    http://www.ztex.de
 
    This program is free software; you can redistribute it and/or modify
@@ -29,9 +29,9 @@
 /* *********************************************************************
    ***** global variables **********************************************
    ********************************************************************* */
-xdata WORD eeprom_addr;
-xdata WORD eeprom_write_bytes;
-xdata BYTE eeprom_write_checksum;
+__xdata WORD eeprom_addr;
+__xdata WORD eeprom_write_bytes;
+__xdata BYTE eeprom_write_checksum;
 
 
 /* *********************************************************************
@@ -100,12 +100,12 @@ BYTE i2c_waitStop()
 /* Select the EEPROM device, i.e. send the control Byte. 
    <to> specifies the time to wait in 0.1ms steps if the EEPROM is busy (during a write cycle).
    if <stop>=0 no sop bit is sent. Returns 1 on error or if EEPROM is busy. */
-BYTE eeprom_select ( BYTE to, BYTE stop ) {
+BYTE eeprom_select (BYTE addr, BYTE to, BYTE stop ) {
     BYTE toc = 0;
 eeprom_select_start:
     I2CS |= bmBIT7;		// start bit
     i2c_waitStart();
-    I2DAT = EEPROM_ADDR;	// select device for writing
+    I2DAT = addr;		// select device for writing
     if ( ! i2c_waitWrite() ) {
         if ( stop ) {
             I2CS |= bmBIT6;
@@ -134,7 +134,7 @@ BYTE eeprom_read ( __xdata BYTE *buf, WORD addr, BYTE length ) {
     if ( length == 0 ) 
 	return 0;
     
-    if ( eeprom_select(100,0) ) 
+    if ( eeprom_select(EEPROM_ADDR, 100,0) ) 
 	goto eeprom_read_end;
     
     I2DAT = HI(addr);		// write address
@@ -172,13 +172,13 @@ eeprom_read_end:
 /* *********************************************************************
    ***** eeprom_write **************************************************
    ********************************************************************* */
-/* Writes <length> bytes from buf to and write them EEPROM address <addr>.
-   <length> must be smaller or equal than 64. Returns the number of bytes
+/* Writes <length> bytes from buf to EEPROM address <addr>.
+   <length> must be smaller or equal than 8. Returns the number of bytes
    read. This number is 0 during a write cycle. */
 BYTE eeprom_write ( __xdata BYTE *buf, WORD addr, BYTE length ) {
     BYTE bytes = 0;
 
-    if ( eeprom_select(100,0) ) 
+    if ( eeprom_select(EEPROM_ADDR, 100,0) ) 
 	goto eeprom_write_end;
     
     I2DAT = HI(addr);          	// write address
@@ -244,10 +244,129 @@ ADD_EP0_VENDOR_REQUEST((0x3A,,				// EEPROM state
     EP0BUF[0] = LSB(eeprom_write_bytes);
     EP0BUF[1] = MSB(eeprom_write_bytes);
     EP0BUF[2] = eeprom_write_checksum;
-    EP0BUF[3] = eeprom_select(0,1);			// 1 means busy or error
+    EP0BUF[3] = eeprom_select(EEPROM_ADDR,0,1);		// 1 means busy or error
     EP0BCH = 0;
     EP0BCL = 4;
 ,,));;
 
+
+#ifdef[MAC_EEPROM_ENABLED]
+#define[EEPROM_MAC_ADDR][0xA6]
+#define[@CAPABILITY_MAC_EEPROM;]
+
+__xdata BYTE mac_eeprom_addr;
+
+/* *********************************************************************
+   ***** mac_eeprom_read ***********************************************
+   ********************************************************************* */
+/* Reads <length> bytes from EEPROM address <addr> and write them to buf. 
+   Returns the number of bytes read. This number is 0 during a write cycle. */
+BYTE mac_eeprom_read ( __xdata BYTE *buf, BYTE addr, BYTE length ) { 
+    BYTE bytes = 0,i;
+    
+    if ( length == 0 ) 
+	return 0;
+    
+    if ( eeprom_select(EEPROM_MAC_ADDR, 100,0) ) 
+	goto mac_eeprom_read_end;
+    
+    I2DAT = addr;		// write address
+    if ( i2c_waitWrite() ) goto mac_eeprom_read_end;
+    I2CS |= bmBIT6;
+    i2c_waitStop();
+
+
+    I2CS |= bmBIT7;		// start bit
+    i2c_waitStart();
+    I2DAT = EEPROM_MAC_ADDR | 1;  // select device for reading
+    if ( i2c_waitWrite() ) goto mac_eeprom_read_end;
+
+    *buf = I2DAT;		// dummy read
+    if ( i2c_waitRead()) goto mac_eeprom_read_end; 
+    for (; bytes<length; bytes++ ) {
+	*buf = I2DAT;		// read data
+	buf++;
+	if ( i2c_waitRead()) goto mac_eeprom_read_end; 
+    }
+
+    I2CS |= bmBIT5;		// no ACK
+    i = I2DAT;			// dummy read
+    if ( i2c_waitRead()) goto mac_eeprom_read_end; 
+
+    I2CS |= bmBIT6;		// stop bit
+    i = I2DAT;			// dummy read
+    i2c_waitStop();
+
+mac_eeprom_read_end:
+    return bytes;
+}
+
+/* *********************************************************************
+   ***** mac_eeprom_write **********************************************
+   ********************************************************************* */
+/* Writes <length> bytes from buf to and write them EEPROM address <addr>.
+   <length> must be smaller or equal than 8. Returns the number of bytes
+   read. This number is 0 during a write cycle. */
+BYTE mac_eeprom_write ( __xdata BYTE *buf, BYTE addr, BYTE length ) {
+    BYTE bytes = 0;
+
+    if ( eeprom_select(EEPROM_MAC_ADDR, 100,0) ) 
+	goto mac_eeprom_write_end;
+    
+    I2DAT = addr;          	// write address
+    if ( i2c_waitWrite() ) goto mac_eeprom_write_end;
+    
+    for (; bytes<length; bytes++ ) {
+	I2DAT = *buf;         	// write data 
+	buf++;
+	if ( i2c_waitWrite() ) goto mac_eeprom_write_end;
+    }
+    I2CS |= bmBIT6;		// stop bit
+    i2c_waitStop();
+	
+mac_eeprom_write_end:
+    return bytes;
+}
+
+/* *********************************************************************
+   ***** EP0 vendor request 0x3B ***************************************
+   ********************************************************************* */
+BYTE mac_eeprom_read_ep0 () { 
+    BYTE i, b;
+    b = ep0_payload_transfer;
+    i = mac_eeprom_read(EP0BUF, mac_eeprom_addr, b);
+    return i;
+}
+
+ADD_EP0_VENDOR_REQUEST((0x3B,, 				// read from EEPROM
+    mac_eeprom_addr =  SETUPDAT[2];			// Address
+    EP0BCH = 0;
+    EP0BCL = mac_eeprom_read_ep0(); 
+,,
+    EP0BCH = 0;
+    EP0BCL = mac_eeprom_read_ep0(); 
+));; 
+
+
+/* *********************************************************************
+   ***** EP0 vendor command 0x3C ***************************************
+   ********************************************************************* */
+ADD_EP0_VENDOR_COMMAND((0x3C,,				// write to EEPROM
+    mac_eeprom_addr =  SETUPDAT[2];			// address
+,,
+    mac_eeprom_write(EP0BUF, mac_eeprom_addr, EP0BCL);
+    ));; 
+
+/* *********************************************************************
+   ***** EP0 vendor request 0x3D ***************************************
+   ********************************************************************* */
+ADD_EP0_VENDOR_REQUEST((0x3D,,				// EEPROM state
+    EP0BUF[0] = eeprom_select(EEPROM_MAC_ADDR,0,1);	// 1 means busy or error
+    EP0BCH = 0;
+    EP0BCL = 1;
+,,));;
+
+
+#endif // MAC_EEPROM_ENABLED
 
 #endif  /*ZTEX_EEPROM_H*/

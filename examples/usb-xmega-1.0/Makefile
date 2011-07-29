@@ -1,4 +1,4 @@
-DIRS=flashdemo flashbench
+DIRS=flashdemo flashbench nvmtest ucecho
 
 .PHONY: default all clean distclean
 

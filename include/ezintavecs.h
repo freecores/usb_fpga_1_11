@@ -1,6 +1,6 @@
 /*!
-   ZTEX Firmware Kit for EZ-USB Microcontrollers
-   Copyright (C) 2009-2010 ZTEX e.K.
+   ZTEX Firmware Kit for EZ-USB FX2 Microcontrollers
+   Copyright (C) 2009-2011 ZTEX GmbH.
    http://www.ztex.de
 
    This program is free software; you can redistribute it and/or modify
@@ -85,15 +85,15 @@ DEFINE_INTVEC(0x01AC,INTVEC_EP8FF);
 DEFINE_INTVEC(0x01B0,INTVEC_GPIFDONE);
 DEFINE_INTVEC(0x01B4,INTVEC_GPIFWF);]
 
-#define[DEFINE_INTVEC(][,$1);][xdata at $0 struct INTVEC $1;]
+#define[DEFINE_INTVEC(][,$1);][__xdata __at $0 struct INTVEC $1;]
 INTVECS;
 #udefine[DEFINE_INTVEC(]
 
-void abscode_intvec() _naked
+void abscode_intvec()// _naked
 {
 #define[DEFINE_INTVEC(][,$1);][    .org $0
 	reti]
-    _asm
+    __asm
     .area ABSCODE (ABS,CODE)
     .org 0x0000
 ENTRY:
@@ -103,7 +103,7 @@ INTVECS;
 INTVEC_DUMMY:
         reti
     .area CSEG    (CODE)
-    _endasm;    
+    __endasm;    
 }    
 
 #udefine[INTVECS;]

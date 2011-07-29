@@ -1,6 +1,6 @@
 /*!
-   ZTEX Firmware Kit for EZ-USB Microcontrollers
-   Copyright (C) 2009-2010 ZTEX e.K.
+   ZTEX Firmware Kit for EZ-USB FX2 Microcontrollers
+   Copyright (C) 2009-2011 ZTEX GmbH.
    http://www.ztex.de
 
    This program is free software; you can redistribute it and/or modify
@@ -34,8 +34,17 @@
    ***** EEPROM support and some I2C helper functions ******************
    ********************************************************************* */
 #ifneq[EEPROM_DISABLED][1]
+
+#ifneq[EEPROM_MAC_DISABLED][1]
+#ifeq[PRODUCT_IS][UFM-1_15]
+#define[MAC_EEPROM_ENABLED]
+#endif // PRODUCT_IS=UFM-1_15
+#endif // EEPROM_MAC_DISABLED
+
 #include[ztex-eeprom.h]
-#endif
+
+#endif // EEPROM_DISABLED
+
 
 /* *********************************************************************
    ***** Flash memory support ******************************************
@@ -92,6 +101,14 @@
 #define[MMC_BIT_CLK][6]
 #include[ztex-flash1.h]
 
+#elifeq[PRODUCT_IS][UFM-1_15]
+#define[MMC_PORT][C]
+#define[MMC_BIT_DO][4]
+#define[MMC_BIT_CS][5]
+#define[MMC_BIT_DI][7]
+#define[MMC_BIT_CLK][6]
+#include[ztex-flash1.h]
+
 #elifeq[PRODUCT_IS][UXM-1_0]
 #define[MMC_PORT][C]
 #define[MMC_BIT_CS][7]
@@ -119,6 +136,8 @@
 #include[ztex-fpga2.h]
 #elifeq[PRODUCT_IS][UFM-1_11]
 #include[ztex-fpga3.h]
+#elifeq[PRODUCT_IS][UFM-1_15]
+#include[ztex-fpga4.h]
 #endif
 
 
@@ -134,17 +153,64 @@
    ***** XMEGA support *************************************************
    ********************************************************************* */
 #ifneq[XMEGA_DISABLED][1]
+
 #ifeq[PRODUCT_IS][UXM-1_0]
+#define[PDI_PORT][A]
+#define[PDI_BIT_CLK][0]
+#define[PDI_BIT_DATA][1]
 #include[ztex-xmega.h]
 #endif
+
+#ifeq[EXP_1_10_ENABLED][1]
+#ifneq[PRODUCT_IS][UFM-1_0]
+#elifneq[PRODUCT_IS][UFM-1_1]
+#elifneq[PRODUCT_IS][UFM-1_2]
+#elifneq[PRODUCT_IS][UFM-1_10]
+#elifneq[PRODUCT_IS][UFM-1_11]
+#elifneq[PRODUCT_IS][UFM-1_15]
+#warning[ZTEX Experimental Board 1.10 is not supported by this product.]
+#endif
+#define[PDI_PORT][E]
+#define[PDI_BIT_CLK][5]
+#define[PDI_BIT_DATA][4]
+#include[ztex-xmega.h]
 #endif
 
+#endif
 
 /* *********************************************************************
    ***** define the descriptors and the interrupt routines *************
    ********************************************************************* */
 #include[ztex-descriptors.h]
 #include[ztex-isr.h]
+
+
+#ifdef[@CAPABILITY_MAC_EEPROM;]
+/* *********************************************************************
+   ***** mac_eeprom_init ***********************************************
+   ********************************************************************* */
+void mac_eeprom_init ( ) { 
+    BYTE b,c,d;
+    xdata BYTE buf[5];
+    __code char hexdigits[] = "0123456789ABCDEF";    
+    
+    for (b=0; b<10; b++) {	// abort if SN != "0000000000"
+	if ( SN_STRING[b] != '0' )
+	    return;
+    }
+
+    mac_eeprom_read ( buf, 0xfb, 5 );	// read the last 5 MAC digits
+
+    c=0;
+    for (b=0; b<5; b++) {	// convert to MAC to SN string
+	d = buf[b];
+	SN_STRING[c] = hexdigits[d>>4];
+	c++;
+	SN_STRING[c] = hexdigits[d & 15];
+	c++;
+    } 
+}
+#endif
 
 
 /* *********************************************************************
@@ -194,6 +260,7 @@ void init_USB ()
     USBCS |= 0x08;
     
     CPUCS = bmBIT4 | bmBIT1;
+    wait(2);
     CKCON &= ~7;
     
 #ifeq[PRODUCT_IS][UFM-1_0]
@@ -209,6 +276,9 @@ void init_USB ()
     IOA1 = 1;		
     OEA |= bmBIT1;
 #elifeq[PRODUCT_IS][UFM-1_11]
+    IOA1 = 1;		
+    OEA |= bmBIT1;
+#elifeq[PRODUCT_IS][UFM-1_15]
     IOA1 = 1;		
     OEA |= bmBIT1;
 #endif
@@ -263,12 +333,16 @@ void init_USB ()
     debug_init();
 #endif
 #ifeq[XMEGA_ENABLED][1]
-//    xmega_init();
+    xmega_init();
+#endif
+#ifdef[@CAPABILITY_MAC_EEPROM;]
+    mac_eeprom_init();
 #endif
 
 
     USBCS |= bmBIT7 | bmBIT1;
-    wait(250);
+    wait(10);
+//    wait(250);
     USBCS &= ~0x08;
 }
 

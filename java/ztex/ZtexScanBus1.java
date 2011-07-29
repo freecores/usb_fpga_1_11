@@ -1,6 +1,6 @@
 /*!
-   Java Driver API for the ZTEX Firmware Kit
-   Copyright (C) 2009-2010 ZTEX e.K.
+   Java host software API of ZTEX EZ-USB FX2 SDK
+   Copyright (C) 2009-2011 ZTEX GmbH.
    http://www.ztex.de
 
    This program is free software; you can redistribute it and/or modify
@@ -43,19 +43,21 @@ public class ZtexScanBus1 {
   *   <li> usbVendorId and usbProductId can be used to search for devices with a given vendor and product ID. These devices must provide a ZTEX descriptor 1.</li>
   *   <li> If a certain interface version is required, it can be specified using interfaceVersion. </li>
   *   <li> Incompatible devices can be excluded by the specification of the ZTEX product ID's, see {@link ZtexDevice1#compatible(int,int,int,int)}. </li>
-  *   <li> If scanCypress is true, all devices (even unconfigured ones) with Cypress EZ-USB vendor and product ID's are considered. </li>
+  *   <li> If scanUnconfigured is true, also devices without ZTEX Firmware and devices with Cypress EZ-USB USB are considered</li>
+  *   <li> In multi device environment a single device can be selected by giving a serial number. </li>
   * </ol>
   * @param usbVendorId USB vendor ID of the device to be searched for
   * @param usbProductId USB product ID of the device to be searched for
-  * @param scanCypress Include devices with Cypress EZ-USB vendor and product ID's (even unconfigured ones) 
+  * @param scanUnconfigured if true, scan for unconfigured devices and devices with Cypress EZ-USB USB ID's
   * @param quiet if true, don't print any warnings
   * @param interfaceVersion The required interface version (&lt;0 if no interface version is required)
+  * @param snString The serial number of the device
   * @param productId0 Byte 0 of a given ZTEX product ID (&le;0 if not to be considered)
   * @param productId1 Byte 1 of a given ZTEX product ID (&le;0 if not to be considered)
   * @param productId2 Byte 2 of a given ZTEX product ID (&le;0 if not to be considered)
   * @param productId3 Byte 3 of a given ZTEX product ID (&le;0 if not to be considered)
   */
-    public ZtexScanBus1 (int usbVendorId, int usbProductId, boolean scanCypress, boolean quiet, int interfaceVersion, int productId0, int productId1, int productId2, int productId3 ) {
+    public ZtexScanBus1 (int usbVendorId, int usbProductId, boolean scanUnconfigured, boolean quiet, int interfaceVersion, String snString, int productId0, int productId1, int productId2, int productId3 ) {
 	LibusbJava.usb_find_busses();
 	LibusbJava.usb_find_devices();
 
@@ -65,31 +67,19 @@ public class ZtexScanBus1 {
 	    Usb_Device dev = bus.getDevices();
 	    while ( dev != null ) { 
 		try {
-		    try {
-	    		ZtexDevice1 zdev = new ZtexDevice1( dev, usbVendorId, usbProductId );
-			if ( ( scanCypress && zdev.isCypress() ) ||
-			     ( zdev.valid() && (interfaceVersion<0 || zdev.interfaceVersion()==interfaceVersion) && zdev.compatible(productId0, productId1, productId2, productId3) ) ) {
+		    ZtexDevice1 zdev = new ZtexDevice1( dev, usbVendorId, usbProductId, scanUnconfigured );
+		    if ( scanUnconfigured ||
+			 ( zdev.valid() && 
+			   ( interfaceVersion<0 || zdev.interfaceVersion()==interfaceVersion ) && 
+			   ( snString == null || zdev.snString().equals(snString) ) && 
+			    zdev.compatible(productId0, productId1, productId2, productId3) 
+			 ) 
+		       ) 
 			    devices.add( zdev );
-			}
-		    }
-		    catch ( InvalidFirmwareException e ) {
-			if ( scanCypress && usbVendorId == ZtexDevice1.cypressVendorId && usbProductId == ZtexDevice1.cypressProductId ) {
-			    try {
-	    			ZtexDevice1 zdev = new ZtexDevice1( dev, -1, -1 );
-				if ( zdev.isCypress() ) devices.add( zdev );
-			    }
-			    catch ( InvalidFirmwareException e2 ) {
-				if ( ! quiet )
-				    System.err.println( e2.getLocalizedMessage() );		// should never occur
-			    }
-			}
-			else {
-			    if ( ! quiet )
-				System.err.println( e.getLocalizedMessage() );
-			} 
-		    }
 		}
-		catch ( UsbException e ) {
+		catch ( DeviceNotSupportedException e ) {
+		}
+		catch ( Exception e ) {
 		    if ( ! quiet )
 			System.err.println( e.getLocalizedMessage() );
 		}
@@ -105,16 +95,35 @@ public class ZtexScanBus1 {
   * <ol>
   *   <li> usbVendorId and usbProductId can be used to search for devices with a given vendor and product ID. These devices must provide a ZTEX descriptor 1.</li>
   *   <li> If a certain interface version is required, it can be specified using interfaceVersion. </li>
-  *   <li> If scanCypress is true, all devices (even unconfigured ones) with Cypress EZ-USB vendor and product ID's are considered. </li>
+  *   <li> If scanUnconfigured is true, also devices without ZTEX Firmware and devices with Cypress EZ-USB USB are considered</li>
+  *   <li> In multi device environment a single device can be selected by giving a serial number. </li>
   * </ol>
   * @param usbVendorId USB vendor ID of the device to be searched for
   * @param usbProductId USB product ID of the device to be searched for
-  * @param scanCypress Include devices with Cypress EZ-USB vendor and product ID's (even unconfigured ones) 
+  * @param scanUnconfigured if true, scan for unconfigured devices and devices with Cypress EZ-USB USB ID's
   * @param quiet if true, don't print any warnings
   * @param interfaceVersion The required interface version (<0 if no interface version is required)
   */
-    public ZtexScanBus1 (int usbVendorId, int usbProductId, boolean scanCypress, boolean quiet, int interfaceVersion ) {
-	this(usbVendorId, usbProductId, scanCypress, quiet, interfaceVersion, -1,-1,-1,-1 );
+    public ZtexScanBus1 (int usbVendorId, int usbProductId, boolean scanUnconfigured, boolean quiet, int interfaceVersion, String snString ) {
+	this(usbVendorId, usbProductId, scanUnconfigured, quiet, interfaceVersion, snString, -1,-1,-1,-1 );
+    }
+
+/**
+  * Scans the USB for suitable devices and constructs a list of them.
+  * Three kinds of search filters can be applied
+  * <ol>
+  *   <li> usbVendorId and usbProductId can be used to search for devices with a given vendor and product ID. These devices must provide a ZTEX descriptor 1.</li>
+  *   <li> If a certain interface version is required, it can be specified using interfaceVersion. </li>
+  *   <li> If scanUnconfigured is true, also devices without ZTEX Firmware and devices with Cypress EZ-USB USB are considered</li>
+  * </ol>
+  * @param usbVendorId USB vendor ID of the device to be searched for
+  * @param usbProductId USB product ID of the device to be searched for
+  * @param scanUnconfigured if true, scan for unconfigured devices and devices with Cypress EZ-USB USB ID's
+  * @param quiet if true, don't print any warnings
+  * @param interfaceVersion The required interface version (<0 if no interface version is required)
+  */
+    public ZtexScanBus1 (int usbVendorId, int usbProductId, boolean scanUnconfigured, boolean quiet, int interfaceVersion ) {
+	this(usbVendorId, usbProductId, scanUnconfigured, quiet, interfaceVersion, null, -1,-1,-1,-1 );
     }
 
 /**
@@ -122,15 +131,15 @@ public class ZtexScanBus1 {
   * Two kinds of search filters can be applied
   * <ol>
   *   <li> usbVendorId and usbProductId can be used to search for devices with a given vendor and product ID. These devices must provide a ZTEX descriptor 1.</li>
-  *   <li> If scanCypress is true, all devices (even unconfigured ones) with Cypress EZ-USB vendor and product ID's are considered. </li>
+  *   <li> If scanUnconfigured is true, also devices without ZTEX Firmware and devices with Cypress EZ-USB USB are considered</li>
   * </ol>
   * @param usbVendorId USB vendor ID of the device to be searched for
   * @param usbProductId USB product ID of the device to be searched for
-  * @param scanCypress Include devices with Cypress EZ-USB vendor and product ID's (even unconfigured ones) 
+  * @param scanUnconfigured if true, scan for unconfigured devices and devices with Cypress EZ-USB USB ID's
   * @param quiet if true, don't print any warnings
   */
-    public ZtexScanBus1 (int usbVendorId, int usbProductId, boolean scanCypress, boolean quiet ) {
-	this(usbVendorId, usbProductId, scanCypress, quiet, -1, -1,-1,-1,-1 );
+    public ZtexScanBus1 (int usbVendorId, int usbProductId, boolean scanUnconfigured, boolean quiet ) {
+	this(usbVendorId, usbProductId, scanUnconfigured, quiet, -1, null, -1,-1,-1,-1 );
     }
 
 // ******* printBus ************************************************************
@@ -165,5 +174,6 @@ public class ZtexScanBus1 {
 	    throw new IndexOutOfBoundsException( "Device number out of range. Valid numbers are 0.." + (devices.size()-1) ); 
 	return devices.elementAt(i);
     }
+
 }    
 

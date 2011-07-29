@@ -1,6 +1,6 @@
 /*!
-   ZTEX Firmware Kit for EZ-USB Microcontrollers
-   Copyright (C) 2009-2010 ZTEX e.K.
+   ZTEX Firmware Kit for EZ-USB FX2 Microcontrollers
+   Copyright (C) 2009-2011 ZTEX GmbH.
    http://www.ztex.de
 
    This program is free software; you can redistribute it and/or modify
@@ -32,14 +32,14 @@
 
 #define[@CAPABILITY_DEBUG;]
 
-xdata WORD debug_counter;				  // message number 
-xdata BYTE debug_stack_size;				  // stack size in messages
-xdata BYTE debug_msg_size;				  // message size in bytes
-xdata BYTE debug_stack[DEBUG_STACK_SIZE*DEBUG_MSG_SIZE];  // message stack
-xdata BYTE* xdata debug_stack_ptr;                        // pointer to the last message added
+__xdata WORD debug_counter;				  // message number 
+__xdata BYTE debug_stack_size;				  // stack size in messages
+__xdata BYTE debug_msg_size;				  // message size in bytes
+__xdata BYTE debug_stack[DEBUG_STACK_SIZE*DEBUG_MSG_SIZE];  // message stack
+__xdata BYTE* __xdata debug_stack_ptr;                        // pointer to the last message added
 
-xdata BYTE debug_msg_buf[DEBUG_MSG_SIZE];		  // user buffer: user should write data to this buffer
-xdata BYTE* xdata debug_read_addr;
+__xdata BYTE debug_msg_buf[DEBUG_MSG_SIZE];		  // user buffer: user should write data to this buffer
+__xdata BYTE* __xdata debug_read_addr;
 
 /* *********************************************************************
    ***** debug_add_msg *************************************************

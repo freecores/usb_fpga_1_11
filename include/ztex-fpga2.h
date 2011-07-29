@@ -1,6 +1,6 @@
 /*!
-   ZTEX Firmware Kit for EZ-USB Microcontrollers
-   Copyright (C) 2009-2010 ZTEX e.K.
+   ZTEX Firmware Kit for EZ-USB FX2 Microcontrollers
+   Copyright (C) 2009-2011 ZTEX GmbH.
    http://www.ztex.de
 
    This program is free software; you can redistribute it and/or modify
@@ -25,10 +25,10 @@
 
 #define[@CAPABILITY_FPGA;]
 
-xdata BYTE fpga_checksum;         // checksum
-xdata DWORD fpga_bytes;           // transfered bytes
-xdata BYTE fpga_init_b;           // init_b state (should be 222 after configuration)
-xdata BYTE fpga_flash_result;     // result of automatic fpga configuarion from Flash
+__xdata BYTE fpga_checksum;         // checksum
+__xdata DWORD fpga_bytes;           // transfered bytes
+__xdata BYTE fpga_init_b;           // init_b state (should be 222 after configuration)
+__xdata BYTE fpga_flash_result;     // result of automatic fpga configuarion from Flash
 
 /* *********************************************************************
    ***** reset_fpga ****************************************************
@@ -152,7 +152,7 @@ void fpga_send_ep0() {
     oOED = OED;
     OED = 255;
     fpga_bytes += ep0_payload_transfer;
-    _asm
+    __asm
 	mov	dptr,#_EP0BCL
 	movx	a,@dptr
 	jz 	010000$
@@ -178,7 +178,7 @@ void fpga_send_ep0() {
 	movx	@dptr,a
 	
 010000$:
-    	_endasm; 
+    	__endasm; 
     OED = oOED;
     if ( EP0BCL<64 ) {
     	finish_fpga_configuration();
@@ -199,7 +199,7 @@ ADD_EP0_VENDOR_COMMAND((0x32,,		// send FPGA configuration data
    ********************************************************************* */
 void fpga_send_bitstream_from_flash (WORD size) {
 	size;			// this avoids stupid warnings
-_asm
+__asm
 	push 	_OED
 	mov	_OED,#0
 
@@ -264,7 +264,7 @@ _asm
 	cjne	r5,#0xff,010003$
 	dec	r6 
 	sjmp	010003$
-_endasm;    
+__endasm;    
 }
 
 #include[ztex-fpga-flash.h]

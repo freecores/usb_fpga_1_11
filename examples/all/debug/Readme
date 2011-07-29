@@ -19,13 +19,13 @@ Two variables and one function are used for the message control:
    This buffer is used to buffer the message. The user should
    write the data to this buffer. 
 */
-xdata BYTE debug_msg_buf[DEBUG_MSG_SIZE];
+__xdata BYTE debug_msg_buf[DEBUG_MSG_SIZE];
 
 /* 
    Points the the last message on message stack. This can be used to 
    modify / update the last message 
 */
-xdata BYTE* xdata debug_stack_ptr;
+__xdata BYTE* xdata debug_stack_ptr;
 
 /* 
    Adds the message stored in debug_msg_buf to the message stack 

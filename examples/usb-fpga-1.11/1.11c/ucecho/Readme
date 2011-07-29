@@ -9,7 +9,7 @@ All data that is written to Endpoint 4 is converted to uppercase by
 the FPGA and can be read back from Endpoint 2.
 
 This example does the same as the example in directory ../../all/ucecho
-except that the uppercase - lowercase conversion made by the FPGA.
+except that the uppercase - lowercase conversion is made by the FPGA.
 
 The driver (defined in UCEcho.java) uploads the the Firmware (ucecho.ihx) 
 to the EZ-USB Microcontroller and the Bitstream (fpga/ucecho.bit) to the

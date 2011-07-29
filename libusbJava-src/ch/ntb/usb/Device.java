@@ -36,7 +36,7 @@ public class Device {
 
 	private int dev_configuration, dev_interface, dev_altinterface;
 
-	private int usbDevHandle;
+	private long usbDevHandle;
 
 	private boolean resetOnFirstOpen, resetDone;
 
@@ -194,7 +194,7 @@ public class Device {
 		dev = initDevice(idVendor, idProduct, filename);
 
 		if (dev != null) {
-			int res = LibusbJava.usb_open(dev);
+			long res = LibusbJava.usb_open(dev);
 			if (res == 0) {
 				throw new USBException("LibusbJava.usb_open: "
 						+ LibusbJava.usb_strerror());
@@ -597,7 +597,7 @@ public class Device {
 	 * @throws USBException
 	 *             throws an USBException if the action fails
 	 */
-	private void claim_interface(int usb_dev_handle, int configuration,
+	private void claim_interface(long usb_dev_handle, int configuration,
 			int interface_, int altinterface) throws USBException {
 		if (LibusbJava.usb_set_configuration(usb_dev_handle, configuration) < 0) {
 			usbDevHandle = 0;
@@ -634,7 +634,7 @@ public class Device {
 	 * @throws USBException
 	 *             throws an USBException if the action fails
 	 */
-	private void release_interface(int dev_handle, int interface_)
+	private void release_interface(long dev_handle, int interface_)
 			throws USBException {
 		if (LibusbJava.usb_release_interface(dev_handle, interface_) < 0) {
 			usbDevHandle = 0;

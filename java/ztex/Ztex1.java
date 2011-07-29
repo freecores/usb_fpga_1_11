@@ -1,6 +1,6 @@
 /*!
-   Java Driver API for the ZTEX Firmware Kit
-   Copyright (C) 2009-2010 ZTEX e.K.
+   Java host software API of ZTEX EZ-USB FX2 SDK
+   Copyright (C) 2009-2011 ZTEX GmbH.
    http://www.ztex.de
 
    This program is free software; you can redistribute it and/or modify
@@ -40,15 +40,19 @@ import ch.ntb.usb.*;
   * @see Ztex1v1
   */
 public class Ztex1 {
-    private int handle;
+    private final int maxDevNum = 1023;
+    private long handle;
     private ZtexDevice1 dev = null;
-    private boolean oldDevices[] = new boolean[128];  
+    private boolean oldDevices[] = new boolean[maxDevNum+1];
     private String usbBusName = null;
+    private boolean[] interfaceClaimed = new boolean[256];
 /** * Setting to true enables certain workarounds, e.g. to deal with bad driver/OS implementations. */
     public boolean certainWorkarounds = false;
 /** * The timeout for  control messages in ms. */    
     public int controlMsgTimeout = 1000;	// in ms
     private long lastVendorCommandT = 0;
+    
+    
 
 // ******* Ztex1 ***************************************************************
 /** 
@@ -58,6 +62,9 @@ public class Ztex1 {
   */
     public Ztex1 ( ZtexDevice1 pDev ) throws UsbException {
 	dev = pDev;
+	
+	for (int i=0; i<256; i++)
+	    interfaceClaimed[i] = false;
 
 	handle = LibusbJava.usb_open(dev.dev());
 //	if ( handle<=0 ) 
@@ -67,12 +74,16 @@ public class Ztex1 {
 // ******* finalize ************************************************************
 /** * The destructor closes the USB file handle. */
     protected void finalize () {
+	for (int i=0; i<256; i++)
+	    if ( interfaceClaimed[i] ) 
+		LibusbJava.usb_release_interface(handle, i);
+
 	LibusbJava.usb_close(handle);
     }
 
 // ******* handle **************************************************************
 /** * Returns the USB file handle. */
-    public final int handle() 
+    public final long handle() 
     {
         return handle;
     }
@@ -324,6 +335,17 @@ public class Ztex1 {
     }
 
 
+// ******* getInterfaceClaimed *************************************************
+/**
+  * Returns true if interface is claimed.
+  * @return true if interface is claimed
+  * @param iface The interface number
+  */
+    public boolean getInterfaceClaimed ( int iface ) {
+	return iface>=0 && iface<256 && interfaceClaimed[iface];
+    }
+    
+
 // ******* claimInterface ******************************************************
 /**
   * Claims an interface.
@@ -331,8 +353,10 @@ public class Ztex1 {
   * @throws UsbException if an error occurs while attempting to claim the interface.
   */
     public void claimInterface ( int iface) throws UsbException{
-	if ( LibusbJava.usb_claim_interface(handle(), iface) < 0 )
+	if ( ( iface<0 || iface>=256 || (! interfaceClaimed[iface]) ) && ( LibusbJava.usb_claim_interface(handle(), iface) < 0 ) )
 	    throw new UsbException("Claiming interface " + iface + " failed: " + LibusbJava.usb_strerror());
+	if ( iface>=0 && iface < 256 )
+	    interfaceClaimed[iface]=true;
     }
 
 
@@ -342,21 +366,27 @@ public class Ztex1 {
   * @param iface The interface number (usually 0)
   */
     public void releaseInterface ( int iface ) {
-	LibusbJava.usb_release_interface(handle(), iface);
+	if ( iface<0 || iface>=256 || interfaceClaimed[iface] ) 
+	    LibusbJava.usb_release_interface(handle(), iface);
+	if ( iface>=0 && iface < 256 )
+	    interfaceClaimed[iface]=false;
+	    
     }
 
 
 // ******* findOldDevices ******************************************************
-    private synchronized void findOldDevices () {
+    private synchronized void findOldDevices () throws DeviceLostException {
 	Usb_Bus bus = dev.dev().getBus();
 	usbBusName = bus.getDirname();
 
-	for ( int i=0; i<=127; i++ ) 
+	for ( int i=0; i<=maxDevNum; i++ ) 
 	    oldDevices[i] = false;
 	
 	Usb_Device d = bus.getDevices();
 	while ( d != null ) { 
 	    byte b = d.getDevnum();
+	    if ( b > maxDevNum ) 
+		throw new DeviceLostException( "Device number too large: " + b + " > " + maxDevNum );
 	    if ( b > 0 ) 
 		oldDevices[b] = true;
 	    d = d.getNext();
@@ -377,9 +407,11 @@ public class Ztex1 {
 	Usb_Device d = bus != null ? bus.getDevices() : null;
 	while ( d != null ) { 
 	    byte b = d.getDevnum();
+	    if ( b > maxDevNum ) 
+		throw new DeviceLostException( "Device number too large: " + b + " > " + maxDevNum );
 	    if ( b > 0 && ! oldDevices[b] ) {
 		if ( newDev != null )
-		    throw new DeviceLostException( errMsg + "More than 2 new devices found" );
+		    throw new DeviceLostException( errMsg + "More than 2 new devices found: " + newDev.getDevnum() + "(`" + newDev.getFilename() + "') and " + b + "(`" + d.getFilename() + "')");
 		newDev = d;
 	    }
 	    d = d.getNext();
@@ -389,7 +421,7 @@ public class Ztex1 {
     }
 
 // ******* initNewDevice *******************************************************
-    private void initNewDevice ( String errBase ) throws DeviceLostException, UsbException, InvalidFirmwareException {
+    private void initNewDevice ( String errBase, boolean scanUnconfigured ) throws DeviceLostException, UsbException, InvalidFirmwareException {
 // scan the bus for up to 60 s for a new device. Boot sequence may take a while.
 	Usb_Device newDev = null;
 	for ( int i=0; i<300 && newDev==null; i++ ) {
@@ -408,20 +440,60 @@ public class Ztex1 {
 	int vid = dd.getIdVendor() & 65535;
 	int pid = dd.getIdProduct() & 65535;
 	try {
-	    dev = new ZtexDevice1( newDev, vid, pid );
+	    dev = new ZtexDevice1( newDev, vid, pid, scanUnconfigured );
 	}
-	catch ( InvalidFirmwareException e ) {
-	    if ( vid == ZtexDevice1.cypressVendorId && pid == ZtexDevice1.cypressProductId ) {
-		dev = new ZtexDevice1( newDev, -1, -1 );
-	    }
-	    else {
-		throw e;
-	    }
+	catch ( DeviceNotSupportedException e ) {
+	    throw new InvalidFirmwareException( e.getLocalizedMessage() );
 	}
+	
 	handle = LibusbJava.usb_open( dev.dev() );
     }
 
 // ******* uploadFirmware ******************************************************
+/**
+  * Uploads the firmware to the EZ-USB and manages the renumeration process.
+  * <p>
+  * Before the firmware is uploaded the device is set into a reset state.
+  * After the upload the firmware is booted and the renumeration starts.
+  * During this process the device disappears from the bus and a new one 
+  * occurs which will be assigned to this class automatically (instead of the disappeared one).
+  * @param ihxFile The firmware image.
+  * @param force The compatibility check is skipped if true.
+  * @throws IncompatibleFirmwareException if the given firmware is not compatible to the installed one, see {@link ZtexDevice1#compatible(int,int,int,int)} (Upload can be enforced using the <tt>force</tt> parameter)
+  * @throws FirmwareUploadException If an error occurred while attempting to upload the firmware.
+  * @throws UsbException if a communication error occurs.
+  * @throws InvalidFirmwareException if ZTEX descriptor 1 is not available.
+  * @throws DeviceLostException if a device went lost after renumeration.
+  * @return the upload time in ms.
+  */
+//  returns upload time in ms
+    public long uploadFirmware ( ZtexIhxFile1 ihxFile, boolean force ) throws IncompatibleFirmwareException, FirmwareUploadException, UsbException, InvalidFirmwareException, DeviceLostException {
+// load the ihx file
+//	ihxFile.dataInfo(System.out);
+//	System.out.println(ihxFile);
+
+// check for compatibility
+	if ( ! force && dev.valid() ) {
+	    if ( ihxFile.interfaceVersion() != 1 )
+		throw new IncompatibleFirmwareException("Wrong interface version: Expected 1, got " + ihxFile.interfaceVersion() );
+	
+	    if ( ! dev.compatible ( ihxFile.productId(0), ihxFile.productId(1), ihxFile.productId(2), ihxFile.productId(3) ) )
+		throw new IncompatibleFirmwareException("Incompatible productId's: Current firmware: " + ZtexDevice1.byteArrayString(dev.productId()) 
+		    + "  Ihx File: " + ZtexDevice1.byteArrayString(ihxFile.productId()) );
+	}
+
+// scan the bus for comparison
+	findOldDevices();
+	
+// upload the firmware
+	long time = EzUsb.uploadFirmware( handle, ihxFile );
+	
+// find and init new device
+	initNewDevice("Device lost after uploading Firmware", false);
+	
+	return time;
+    }
+
 /**
   * Uploads the firmware to the EZ-USB and manages the renumeration process.
   * <p>
@@ -451,29 +523,7 @@ public class Ztex1 {
 	catch ( IhxFileDamagedException e ) {
 	    throw new FirmwareUploadException( e.getLocalizedMessage() );
 	}
-//	ihxFile.dataInfo(System.out);
-//	System.out.println(ihxFile);
-
-// check for compatibility
-	if ( ! force && dev.valid() ) {
-	    if ( ihxFile.interfaceVersion() != 1 )
-		throw new IncompatibleFirmwareException("Wrong interface version: Expected 1, got " + ihxFile.interfaceVersion() );
-	
-	    if ( ! dev.compatible ( ihxFile.productId(0), ihxFile.productId(1), ihxFile.productId(2), ihxFile.productId(3) ) )
-		throw new IncompatibleFirmwareException("Incompatible productId's: Current firmware: " + ZtexDevice1.byteArrayString(dev.productId()) 
-		    + "  Ihx File: " + ZtexDevice1.byteArrayString(ihxFile.productId()) );
-	}
-
-// scan the bus for comparison
-	findOldDevices();
-	
-// upload the firmware
-	long time = EzUsb.uploadFirmware( handle, ihxFile );
-	
-// find and init new device
-	initNewDevice("Device lost after uploading Firmware");
-	
-	return time;
+	return uploadFirmware( ihxFile, force );
     }
 
 // ******* resetEzUsb **********************************************************
@@ -501,7 +551,7 @@ public class Ztex1 {
 	}
 	
 // find and init new device
-	initNewDevice( "Device lost after resetting the EZ-USB" );
+	initNewDevice( "Device lost after resetting the EZ-USB", true );
     }
 
 // ******* toString ************************************************************

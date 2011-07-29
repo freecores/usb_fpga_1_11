@@ -30,6 +30,9 @@
 # EXTRAJARFILES
 #   Extra files that should be included into the jar archive
 #   Example: EXTRAJARFILES=ucecho.ihx fpga/ucecho.bin
+# EXTRAJARFLAGS
+#   Extra flags for the jar command
+#   Example: EXTRAJARFLAGS=-C com
 
 # EXTRACLEANFILES
 #   Extra files that should be cleaned by target "clean"
@@ -56,7 +59,7 @@ jar : $(JARTARGET)
 	$(JAVAC) -cp "$(CLASSPATH)" $<
 
 $(JARTARGET) : $(CLASSTARGETS) $(EXTRAJARFILES)
-	jar cf $(JARTARGET) *.class $(EXTRAJARFILES) -C $(ZTEXPREFIX)/libusbJava . $(shell cd $(ZTEXPREFIX)/java; ls ztex/*.class | while read a; do echo "-C $(ZTEXPREFIX)/java $$a"; done)
+	jar cf $(JARTARGET) *.class $(EXTRAJARFILES) $(EXTRAJARFLAGS) -C $(ZTEXPREFIX)/libusbJava . $(shell cd $(ZTEXPREFIX)/java; ls ztex/*.class | while read a; do echo "-C $(ZTEXPREFIX)/java $$a"; done)
 
 clean: 
 	rm -f *~ *.bak *.old

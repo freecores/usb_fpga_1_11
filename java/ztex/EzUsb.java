@@ -1,6 +1,6 @@
 /*!
-   Java Driver API for the ZTEX Firmware Kit
-   Copyright (C) 2009-2010 ZTEX e.K.
+   Java host software API of ZTEX EZ-USB FX2 SDK
+   Copyright (C) 2009-2011 ZTEX GmbH.
    http://www.ztex.de
 
    This program is free software; you can redistribute it and/or modify
@@ -34,7 +34,7 @@ public class EzUsb {
   * @param r The reset state (true means reset).
   * @throws FirmwareUploadException if an error occurred while attempting to control the reset state.
   */
-    public static void reset ( int handle, boolean r ) throws FirmwareUploadException {
+    public static void reset ( long handle, boolean r ) throws FirmwareUploadException {
 	byte buffer[] = { (byte) (r ? 1 : 0) };
 	int k = LibusbJava.usb_control_msg(handle, 0x40, 0xA0, 0xE600, 0, buffer, 1, 1000);   // upload j bytes
 	if ( k<0 ) 
@@ -56,7 +56,7 @@ public class EzUsb {
   * @return the upload time in ms.
   * @throws FirmwareUploadException if an error occurred while attempting to upload the firmware.
   */
-    public static long uploadFirmware (int handle, IhxFile ihxFile ) throws FirmwareUploadException {
+    public static long uploadFirmware (long handle, IhxFile ihxFile ) throws FirmwareUploadException {
 	final int transactionBytes = 256;
 	byte[] buffer = new byte[transactionBytes];
 

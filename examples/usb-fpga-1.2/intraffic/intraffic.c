@@ -1,6 +1,6 @@
 /*!
-   intraffic -- example showing how the EZ-USB FIFO interface is used on ZTEX USB FPGA Module 1.2
-   Copyright (C) 2009-2010 ZTEX e.K.
+   intraffic -- example showing how the EZ-USB FIFO interface is used on ZTEX USB-FPGA Module 1.2
+   Copyright (C) 2009-2011 ZTEX GmbH.
    http://www.ztex.de
 
    This program is free software; you can redistribute it and/or modify
@@ -21,7 +21,7 @@
 
 // 1024 (instead of 512) byte bulk transfers.
 // According to USB standard they are invalid but usually supported and 25% faster.
-#define[fastmode]
+//#define[fastmode]
 
 #ifdef[fastmode]
 // configure endpoint 2, in, quad buffered, 1024 bytes, interface 0

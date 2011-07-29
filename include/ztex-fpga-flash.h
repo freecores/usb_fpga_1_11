@@ -1,6 +1,6 @@
 /*!
-   ZTEX Firmware Kit for EZ-USB Microcontrollers
-   Copyright (C) 2009-2010 ZTEX e.K.
+   ZTEX Firmware Kit for EZ-USB FX2 Microcontrollers
+   Copyright (C) 2009-2011 ZTEX GmbH.
    http://www.ztex.de
 
    This program is free software; you can redistribute it and/or modify
@@ -21,7 +21,7 @@
 */    
 
 
-code BYTE fpga_flash_boot_id[] = {'Z','T','E', 'X', 'B', 'S', '\1', '\1'};
+__code BYTE fpga_flash_boot_id[] = {'Z','T','E', 'X', 'B', 'S', '\1', '\1'};
 
 /* *********************************************************************
    ***** fpga_configure_from_flash *************************************
@@ -30,8 +30,8 @@ code BYTE fpga_flash_boot_id[] = {'Z','T','E', 'X', 'B', 'S', '\1', '\1'};
     Configure the FPGA using a bitstream from flash.
     If force == 0 a already configured FPGA is not re-configured.
     Return values:
-	0 : configuration successfull
-	1 : fpga already configured
+	0 : Configuration successful
+	1 : FPGA already configured
 	2 : Flash error
 	3 : No bitstream found
 	4 : Configuration error
@@ -75,14 +75,13 @@ BYTE fpga_configure_from_flash( BYTE force) {
 	return 3;
 
     // read the bitstream
-    for ( k=1; k<i; k++ ) {
-	if ( flash_read_init( k ) )		// prepare reading sector k
-	    return 2;
-	fpga_send_bitstream_from_flash( flash_sector_size );
-	flash_read_finish(0);			// finish read opration
-    }
-    if ( flash_read_init( i ) )			// prepare reading sector i
+    if ( flash_read_init( 1 ) )			// prepare reading sector k
         return 2;
+    for ( k=1; k<i; k++ ) {
+	fpga_send_bitstream_from_flash( flash_sector_size );
+	if ( flash_read_next() )		// prepare reading next sector
+    	    return 2;
+    }
     fpga_send_bitstream_from_flash( j );
     flash_read_finish(flash_sector_size - j);	// finish read opration
     

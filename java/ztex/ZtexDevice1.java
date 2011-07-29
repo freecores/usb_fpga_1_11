@@ -1,6 +1,6 @@
 /*!
-   Java Driver API for the ZTEX Firmware Kit
-   Copyright (C) 2009-2010 ZTEX e.K.
+   Java host software API of ZTEX EZ-USB FX2 SDK
+   Copyright (C) 2009-2011 ZTEX GmbH.
    http://www.ztex.de
 
    This program is free software; you can redistribute it and/or modify
@@ -141,7 +141,6 @@ public class ZtexDevice1 {
     public static final int ztexProductIdMax = 0x1ff;
 
     private Usb_Device dev = null;
-    private boolean isCypress = false; 		// true if Cypress device
     private boolean valid = false;		// true if descriptor 1 is available
     private int usbVendorId = -1;
     private int usbProductId = -1;
@@ -180,21 +179,28 @@ public class ZtexDevice1 {
   * @param p_dev The USB device.
   * @param pUsbVendorId The given vendor ID.
   * @param pUsbProductId The given product ID.
+  * @param allowUnconfigured If true, unconfigured devices are allowed.
   * @throws UsbException if an USB communication error occurs.
   * @throws InvalidFirmwareException if no valid ZTEX descriptor 1 is found.
+  * @throws DeviceNotSupported if the device has the wrong USB ID's.
   */
-    public ZtexDevice1 (Usb_Device p_dev, int pUsbVendorId, int pUsbProductId) throws UsbException, InvalidFirmwareException {
+    public ZtexDevice1 (Usb_Device p_dev, int pUsbVendorId, int pUsbProductId, boolean allowUnconfigured) throws UsbException, InvalidFirmwareException, DeviceNotSupportedException  {
 	dev = p_dev;
 
 	Usb_Device_Descriptor dd = dev().getDescriptor();
 	usbVendorId = dd.getIdVendor() & 65535;
 	usbProductId = dd.getIdProduct() & 65535;
 	
-	if ( usbVendorId == cypressVendorId  &&  usbProductId == cypressProductId ) {
-	    isCypress = true;
-	}
+	if ( ! ( ( 
+	           (usbVendorId == pUsbVendorId) && 
+	           (usbProductId == pUsbProductId || ( usbVendorId == ztexVendorId && pUsbProductId<0 && usbProductId>=ztexProductId && usbProductId<ztexProductIdMax ) )
+	         ) ||
+	         ( 
+	           allowUnconfigured && (usbVendorId == cypressVendorId) && (usbProductId == cypressProductId)
+	         ) )  )
+	    throw new DeviceNotSupportedException(p_dev);
 	
-	int handle = LibusbJava.usb_open(dev);
+	long handle = LibusbJava.usb_open(dev);
 
 //	if ( handle > 0 ) {
 	    if ( dd.getIManufacturer() > 0 ) 
@@ -204,53 +210,64 @@ public class ZtexDevice1 {
 	    if ( dd.getISerialNumber() > 0 )  
 	    	snString = LibusbJava.usb_get_string_simple( handle, dd.getISerialNumber() );
 		
-	    if ( usbVendorId == pUsbVendorId && (usbProductId == pUsbProductId || ( usbVendorId == ztexVendorId && pUsbProductId<0 && usbProductId>=ztexProductId && usbProductId<ztexProductIdMax ) ) ) {
-		if ( snString == null ) {
-		    LibusbJava.usb_close(handle);
+	    if ( snString == null ) {
+	        LibusbJava.usb_close(handle);
+	        if ( allowUnconfigured )
+	    	    return;
+		else 
 		    throw new InvalidFirmwareException( dev, "Not a ZTEX device" );  // ZTEX devices always have a SN. See also the next comment a few lines below
-		} 
+	    } 
 	    
-	    	byte[] buf = new byte[42];
-		int i = LibusbJava.usb_control_msg(handle, 0xc0, 0x22, 0, 0, buf, 40, 500);	// Failing of this may cause problems under windows. Therefore we check for the SN above.
-		if ( i < 0 ) {
-		    LibusbJava.usb_close(handle);
+	    byte[] buf = new byte[42];
+	    int i = LibusbJava.usb_control_msg(handle, 0xc0, 0x22, 0, 0, buf, 40, 500);	// Failing of this may cause problems under windows. Therefore we check for the SN above.
+	    if ( i < 0 ) {
+	        LibusbJava.usb_close(handle);
+		if ( allowUnconfigured )
+		    return;
+		else 
 		    throw new InvalidFirmwareException( dev, "Error reading ZTEX descriptor: " + LibusbJava.usb_strerror() );
-		}
-		else if ( i != 40 ) {
-		    LibusbJava.usb_close(handle);
-		    throw new InvalidFirmwareException( dev, "Error reading ZTEX descriptor: Invalid size: " + i );
-		}
-		if ( buf[0]!=40 || buf[1]!=1 || buf[2]!='Z' || buf[3]!='T' || buf[4]!='E' || buf[5]!='X' ) {
-		    LibusbJava.usb_close(handle);
-		    throw new InvalidFirmwareException( dev, "Invalid ZTEX descriptor" );
-		}
-		productId[0] = buf[6];
-		productId[1] = buf[7];
-		productId[2] = buf[8];
-		productId[3] = buf[9];
-		fwVersion = buf[10];
-		interfaceVersion = buf[11];
-		interfaceCapabilities[0] = buf[12];
-		interfaceCapabilities[1] = buf[13];
-		interfaceCapabilities[2] = buf[14];
-		interfaceCapabilities[3] = buf[15];
-		interfaceCapabilities[4] = buf[16];
-		interfaceCapabilities[5] = buf[17];
-		moduleReserved[0] = buf[18];
-		moduleReserved[1] = buf[19];
-		moduleReserved[2] = buf[20];
-		moduleReserved[3] = buf[21];
-		moduleReserved[4] = buf[22];
-		moduleReserved[5] = buf[23];
-		moduleReserved[6] = buf[24];
-		moduleReserved[7] = buf[25];
-		moduleReserved[8] = buf[26];
-		moduleReserved[9] = buf[27];
-		moduleReserved[10] = buf[28];
-		moduleReserved[11] = buf[29];
-		
-		valid = true;
 	    }
+	    else if ( i != 40 ) {
+	        LibusbJava.usb_close(handle);
+	        if ( allowUnconfigured )
+		    return;
+		else 
+		    throw new InvalidFirmwareException( dev, "Error reading ZTEX descriptor: Invalid size: " + i );
+	    }
+	    if ( buf[0]!=40 || buf[1]!=1 || buf[2]!='Z' || buf[3]!='T' || buf[4]!='E' || buf[5]!='X' ) {
+	        LibusbJava.usb_close(handle);
+		if ( allowUnconfigured )
+		    return;
+		else 
+		    throw new InvalidFirmwareException( dev, "Invalid ZTEX descriptor" );
+	    }
+	    productId[0] = buf[6];
+	    productId[1] = buf[7];
+	    productId[2] = buf[8];
+	    productId[3] = buf[9];
+	    fwVersion = buf[10];
+	    interfaceVersion = buf[11];
+	    interfaceCapabilities[0] = buf[12];
+	    interfaceCapabilities[1] = buf[13];
+	    interfaceCapabilities[2] = buf[14];
+	    interfaceCapabilities[3] = buf[15];
+	    interfaceCapabilities[4] = buf[16];
+	    interfaceCapabilities[5] = buf[17];
+	    moduleReserved[0] = buf[18];
+	    moduleReserved[1] = buf[19];
+	    moduleReserved[2] = buf[20];
+	    moduleReserved[3] = buf[21];
+	    moduleReserved[4] = buf[22];
+	    moduleReserved[5] = buf[23];
+	    moduleReserved[6] = buf[24];
+	    moduleReserved[7] = buf[25];
+	    moduleReserved[8] = buf[26];
+	    moduleReserved[9] = buf[27];
+	    moduleReserved[10] = buf[28];
+	    moduleReserved[11] = buf[29];
+	
+	    valid = true;
+	        
 //	}
 //	else {
 //	    throw new UsbException( dev, "Error opening device: " + LibusbJava.usb_strerror() );
@@ -265,12 +282,12 @@ public class ZtexDevice1 {
   * @return a string representation if the device with a lot of useful information.
   */
     public String toString () {
-	return "bus=" + dev().getBus().getDirname() + "  device=" + dev().getFilename() + "  ID=" + Integer.toHexString(usbVendorId) + ":" + Integer.toHexString(usbProductId) +
-	    "\n   " + ( isCypress ? "Cypress" : "" ) +
+	
+	return "bus=" + dev().getBus().getDirname() + "  device=" + dev().getDevnum() + " (`" + dev().getFilename() + "')  ID=" + Integer.toHexString(usbVendorId) + ":" + Integer.toHexString(usbProductId) +"\n"  +
 	      ( manufacturerString == null ? "" : ("    Manufacturer=\""  + manufacturerString + "\"") ) +
 	      ( productString == null ? "" : ("  Product=\""  + productString + "\"") ) +
 	      ( snString == null ? "" : ("    SerialNumber=\""  + snString + "\"") ) +
-	    ( valid ? "\n   productID=" + byteArrayString(productId) + "  fwVer="+(fwVersion & 255) + "  ifVer="+(interfaceVersion & 255)  : "" );
+	      ( valid ? "\n   productID=" + byteArrayString(productId) + "  fwVer="+(fwVersion & 255) + "  ifVer="+(interfaceVersion & 255)  : "" );
     }
 
 // ******* compatible **********************************************************
@@ -303,15 +320,6 @@ public class ZtexDevice1 {
 	return dev;
     }
 
-// ******* isCypress ***********************************************************
-/** 
-  * Returns true if the device has Cypress EZ-USB vendor and product ID's (0x4b4 and 0x8613).
-  * @return true if the device has Cypress EZ-USB vendor and product ID's (0x4b4 and 0x8613).
-  */
-    public final boolean isCypress() {
-	return isCypress;
-    }
-    
 // ******* valid ***************************************************************
 /** 
   * Returns true if ZTEX descriptor 1 is available.

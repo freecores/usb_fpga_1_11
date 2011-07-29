@@ -1,6 +1,6 @@
 {*!
    bmp -- babel macro processor
-   Copyright (C) 2009-2010 ZTEX e.K.
+   Copyright (C) 2009-2011 ZTEX GmbH.
    http://www.ztex.de
 
    This program is free software; you can redistribute it and/or modify
@@ -249,19 +249,19 @@ end;
 { ********************************************************************* }
 { ****** FileCache **************************************************** }
 { ********************************************************************* }
-const fileCount   : longint = 0;
-var fileCache : array[0..4095] of ansistring;
+const fileCount : longint = 0;
+var fileCache : array[0..2047] of ansistring;
 
 { ****** getFileNum *************************************************** }
 function getFileNum(const fn:ansistring):longint;
 var i  : longint;
 begin
 i:=0;
-while (i<fileCount) and (i<4096) and (fn<>fileCache[i]) do
+while (i<fileCount) and (i<2047) and (fn<>fileCache[i]) do
   i+=1;
 if fn<>fileCache[i] then
   begin
-  i:=fileCount and 4095;
+  i:=fileCount and 2047;
   fileCache[i]:=fn;
   fileCount+=1;
   end;  
@@ -271,13 +271,14 @@ end;
 { ****** lineInfoStr ************************************************* }
 function lineInfoStr(li:dword):ansistring;
 begin
-result:=fileCache[li and 4095]+'('+int2str((li shr 12)+1)+')';
+result:=fileCache[li and 2047]+'('+int2str((li shr 12)+1)+')';
 end;
 
 procedure lineInfoStr(var fo:text; li:dword);
 var s   : ansistring;
     i,j : longint;
 begin
+if li and 2048 <> 0 then exit;
 pointer(s):=nil;
 i:=1;
 while i<=length(lineInfoPattern) do
@@ -285,10 +286,10 @@ while i<=length(lineInfoPattern) do
   if (lineInfoPattern[i]='%') and (i<length(lineInfoPattern)) 
     then case lineInfoPattern[i+1] of
            '1' : begin
-		 for j:=1 to length(fileCache[li and 4095]) do
-		   if fileCache[li and 4095][j]='\' 
+		 for j:=1 to length(fileCache[li and 2047]) do
+		   if fileCache[li and 2047][j]='\' 
 		     then s+='\\'
-		     else s+=fileCache[li and 4095][j];
+		     else s+=fileCache[li and 2047][j];
 	         i+=1;
 	         end;
 	   '2' : begin
@@ -307,5 +308,14 @@ while i<=length(lineInfoPattern) do
 writeln(fo,s);
 end;
 
+procedure initFileCache;
+var i : longint;
+begin
+fileCache[0]:='?';
+for i:=1 to 2047 do
+  fileCache[i]:=fileCache[0];
+end;
 
+begin
+initFileCache;
 end.

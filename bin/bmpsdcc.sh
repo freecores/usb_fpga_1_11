@@ -43,15 +43,19 @@ while true; do
 	exit $ec
     fi
 
-    sdcc -mmcs51 --code-loc 0x0200 --code-size 0x2e00 --xram-loc 0x3200 --xram-size 0x1000 --iram-size 256 $PEEPH $3 $base.tmp.c -o $base.ihx
+    sdcc -mmcs51 --code-loc 0x0200 --code-size 0x3800 --xram-loc 0x3A00 --xram-size 0x600 --iram-size 256 $PEEPH $3 $base.tmp.c -o $base.ihx
     ec="$?"
     if [ "$ec" != 0 ]; then
 	exit $ec
     fi
 
     addr=`grep ".*:.* _DeviceDescriptor" $base.map | (
-        read a b
-        echo 0x${a#*:}
+        read a b c
+        if [ "$c" = "_DeviceDescriptor" ]; then
+    	    echo 0x${b#*:}
+    	else
+    	    echo 0x${a#*:}
+    	fi
     )`    
     echo "Addr=$addr"
     if [ $((addr & 1)) = "0" ]; then

@@ -1,6 +1,6 @@
 /*!
-   Java Driver API for the ZTEX Firmware Kit
-   Copyright (C) 2009-2010 ZTEX e.K.
+   Java host software API of ZTEX EZ-USB FX2 SDK
+   Copyright (C) 2009-2011 ZTEX GmbH.
    http://www.ztex.de
 
    This program is free software; you can redistribute it and/or modify
@@ -207,10 +207,10 @@ public class ZtexIhxFile1 extends IhxFile {
 	
 	int i=0;
 	for (; i<s.length(); i++ ) {
-	    ihxData[ztexDescriptorOffs+26+i] = (byte) snString[i];
+	    ihxData[ztexDescriptorOffs+30+i] = (byte) s.charAt(i);
 	}
 	for (; i<10; i++ ) {
-	    ihxData[ztexDescriptorOffs+26+i] = 0;
+	    ihxData[ztexDescriptorOffs+30+i] = 0;
 	}
     }
 

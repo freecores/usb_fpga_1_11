@@ -1,6 +1,6 @@
 /*!
-   flashbench -- Flash memory benchmark for ZTEX USB FPGA Module 1.11
-   Copyright (C) 2009-2010 ZTEX e.K.
+   flashbench -- Flash memory benchmark for ZTEX USB-FPGA Module 1.11
+   Copyright (C) 2009-2011 ZTEX GmbH.
    http://www.ztex.de
 
    This program is free software; you can redistribute it and/or modify
@@ -56,29 +56,31 @@ class FlashBench extends Ztex1v1 {
 // ******* testRW **************************************************************
 // measures read + write performance
     public double testRW ( int num ) throws UsbException, InvalidFirmwareException, CapabilityException {
-	byte[] buf1 = new byte[flashSectorSize()];
-	byte[] buf2 = new byte[flashSectorSize()];
+	int secNum = 2048 / flashSectorSize();
+	byte[] buf1 = new byte[flashSectorSize() * secNum];
+	byte[] buf2 = new byte[flashSectorSize() * secNum];
 	int errors = 0;
 
 	long t0 = new Date().getTime();
 
-	for ( int i=0; i<num; i++ ) {
+	for ( int i=0; i<num; i+=secNum ) {
+	    int l = Math.min(num-i,secNum);
 	    int j=(int) Math.round(65535*Math.random());
-	    for (int k=0; k<flashSectorSize(); k++) {
+	    for (int k=0; k<flashSectorSize()*l; k++) {
 		buf1[k] = (byte) (j & 255);
 		j+=57;
 	    }
 
-	    System.out.print("Sector " + (i+1) + "/" + num+ "  " + Math.round(10000.0*(i+1)/num)/100.0 + "%    \r");
-	    flashWriteSector(i,buf1);
-	    flashReadSector(i,buf2);
+	    System.out.print("Sector " + (i+l) + "/" + num+ "  " + Math.round(10000.0*(i+1)/num)/100.0 + "%    \r");
+	    flashWriteSector(i,l,buf1);
+	    flashReadSector(i,l,buf2);
 
-	    int diffs=flashSectorSize();
-	    for (int k=0; k<flashSectorSize(); k++) 
+	    int diffs=flashSectorSize()*l;
+	    for (int k=0; k<flashSectorSize()*l; k++) 
 		if ( buf1[k] == buf2[k] )
 		    diffs -= 1;
-	    if ( diffs!=0 && errors==0) {
-		System.out.print("Error occured: Sector " + i +": " + diffs + " differences: ");
+	    if ( diffs!=0 /*&& errors==0 */) {
+		System.out.println("Error occured at sector " + i +": " + diffs + " differences");
 	    } 
 	    if ( diffs!=0 )
 		errors+=1;
@@ -91,15 +93,17 @@ class FlashBench extends Ztex1v1 {
 // ******* testW **************************************************************
 // measures write performance
     public double testW ( int num, int seed ) throws UsbException, InvalidFirmwareException, CapabilityException {
-	byte[] buf = new byte[flashSectorSize()];
+	int secNum = 2048 / flashSectorSize();
+	byte[] buf = new byte[flashSectorSize() * secNum];
 	long t0 = new Date().getTime();
-	for ( int i=0; i<num; i++ ) {
-	    System.out.print("Sector " + (i+1) + "/" + num+ "  " + Math.round(10000.0*(i+1)/num)/100.0 + "%    \r");
-	    for (int k=0; k<flashSectorSize(); k++) {
+	for ( int i=0; i<num; i+=secNum ) {
+	    int j = Math.min(num-i,secNum);
+	    System.out.print("Sector " + (i+j) + "/" + num+ "  " + Math.round(10000.0*(i+1)/num)/100.0 + "%    \r");
+	    for (int k=0; k<flashSectorSize()*j; k++) {
 		buf[k] = (byte) (seed & 255);
 		seed+=79;
 	    }
-	    flashWriteSector(i,buf);
+	    flashWriteSector(i,j,buf);
 	}
 	return num*512.0/(new Date().getTime() - t0);
     }
@@ -107,20 +111,22 @@ class FlashBench extends Ztex1v1 {
 // ******* testR **************************************************************
 // measures read performance
     public double testR ( int num, int seed ) throws UsbException, InvalidFirmwareException, CapabilityException {
-	byte[] buf = new byte[flashSectorSize()];
+	int secNum = 2048 / flashSectorSize();
+	byte[] buf = new byte[flashSectorSize() * secNum];
 	int errors = 0;
 	long t0 = new Date().getTime();
-	for ( int i=0; i<num; i++ ) {
-	    System.out.print("Sector " + (i+1) + "/" + num+ "  " + Math.round(10000.0*(i+1)/num)/100.0 + "%    \r");
-	    flashReadSector(i,buf);
-	    int diffs = flashSectorSize();
-	    for (int k=0; k<flashSectorSize(); k++) {
+	for ( int i=0; i<num; i+=secNum ) {
+	    int j = Math.min(num-i,secNum);
+	    System.out.print("Sector " + (i+j) + "/" + num+ "  " + Math.round(10000.0*(i+1)/num)/100.0 + "%    \r");
+	    flashReadSector(i,j,buf);
+	    int diffs = flashSectorSize()*j;
+	    for (int k=0; k<flashSectorSize()*j; k++) {
 		if ( buf[k] == (byte) (seed & 255) )
 		    diffs-=1;
 		seed+=79;
 	    }
 	    if ( diffs!=0 && errors==0 ) {
-		System.out.print("Error occured: Sector " + i +": " + diffs + " differences: ");
+		System.out.println("Error occured at sector " + i +": " + diffs + " differences");
 	    } 
 	    if ( diffs!=0 )
 		errors+=1;

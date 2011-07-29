@@ -1,4 +1,4 @@
-DIRS=ucecho ucecho/c
+DIRS=ucecho debug
 
 .PHONY: default all clean distclean
 

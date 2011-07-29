@@ -1,6 +1,6 @@
 /*!
-   ZTEX Firmware Kit for EZ-USB Microcontrollers
-   Copyright (C) 2009-2010 ZTEX e.K.
+   ZTEX Firmware Kit for EZ-USB FX2 Microcontrollers
+   Copyright (C) 2009-2011 ZTEX GmbH.
    http://www.ztex.de
 
    This program is free software; you can redistribute it and/or modify
@@ -17,7 +17,7 @@
 !*/
 
 /*
-    FPGA support for ZTEX USB FPGA Modules 1.10
+    FPGA support for ZTEX USB FPGA Modules 1.11
 */    
 
 #ifndef[ZTEX_FPGA_H]
@@ -25,10 +25,10 @@
 
 #define[@CAPABILITY_FPGA;]
 
-xdata BYTE fpga_checksum;         // checksum
-xdata DWORD fpga_bytes;           // transfered bytes
-xdata BYTE fpga_init_b;           // init_b state (should be 222 after configuration)
-xdata BYTE fpga_flash_result;     // result of automatic fpga configuarion from Flash
+__xdata BYTE fpga_checksum;         // checksum
+__xdata DWORD fpga_bytes;           // transfered bytes
+__xdata BYTE fpga_init_b;           // init_b state (should be 222 after configuration)
+__xdata BYTE fpga_flash_result;     // result of automatic fpga configuarion from Flash
 
 /* *********************************************************************
    ***** reset_fpga ****************************************************
@@ -40,7 +40,7 @@ static void reset_fpga_int (BYTE mode) {		// reset FPGA
     PORTACFG = 0;
     PORTCCFG = 0;
 
-    OEA = bmBIT1 | bmBIT3 | bmBIT4 | bmBIT5 | bmBIT6 | bmBIT7;
+    OEA = (OEA & 5 ) | bmBIT1 | bmBIT3 | bmBIT4 | bmBIT5 | bmBIT6 | bmBIT7;
     IOA = bmBIT7 | mode;
     wait(10);
 		    
@@ -88,21 +88,16 @@ static void finish_fpga_configuration () {
     WORD w;
     fpga_init_b += IOA0 ? 20 : 10;
 
-    for ( w=0; w<65535; w++ ) {
+    for ( w=0; w<64; w++ ) {
         IOA3 = 1; IOA3 = 0; 
     }
-
-    IOA3 = 1; IOA3 = 0;
-    IOA3 = 1; IOA3 = 0;
-    IOA3 = 1; IOA3 = 0;
-    IOA3 = 1; IOA3 = 0;
     IOA7 = 1;
     IOA3 = 1; IOA3 = 0;
     IOA3 = 1; IOA3 = 0;
     IOA3 = 1; IOA3 = 0;
     IOA3 = 1; IOA3 = 0;
 
-    OEA = 0;
+    OEA = OEA & 5;
     fpga_init_b += IOA0 ? 2 : 1;
     if ( IOA1 )  {
 	IOA1 = 1;		
@@ -150,7 +145,7 @@ void fpga_send_ep0() {
     oOED = OED;
     OED = 255;
     fpga_bytes += ep0_payload_transfer;
-    _asm
+    __asm
 	mov	dptr,#_EP0BCL
 	movx	a,@dptr
 	jz 	010000$
@@ -163,20 +158,20 @@ void fpga_send_ep0() {
 	mov 	r1,a
 	mov	dptr,#_XAUTODAT1
 010001$:
-	movx	a,@dptr
-	mov	_IOD,a
-	setb	_IOA3
-	add 	a,r1
-	mov 	r1,a
-	clr	_IOA3
-	djnz	r2, 010001$
+	movx	a,@dptr			// 2
+	mov	_IOD,a			// 2
+	setb	_IOA3			// 2
+	add 	a,r1			// 1
+	mov 	r1,a                    // 1
+	clr	_IOA3                   // 2
+	djnz	r2, 010001$		// 4
 
 	mov	dptr,#_fpga_checksum
 	mov	a,r1
 	movx	@dptr,a
 	
 010000$:
-    	_endasm; 
+    	__endasm; 
     OED = oOED;
     if ( EP0BCL<64 ) {
     	finish_fpga_configuration();
@@ -197,7 +192,7 @@ ADD_EP0_VENDOR_COMMAND((0x32,,		// send FPGA configuration data
    ********************************************************************* */
 void fpga_send_bitstream_from_flash (WORD size) {
 	size;			// this avoids stupid warnings
-_asm
+__asm
 	push 	_OED
 	mov	_OED,#0
 
@@ -236,15 +231,15 @@ _asm
 	movx	@dptr,a
 
 010003$:
-	cjne	r5,#0x00,010002$
+	cjne	r5,#0x00,010002$	// 4
 	cjne	r6,#0x00,010002$
 	pop 	_OED
 	ret
-010002$:
-	setb	_IOA3
-	setb	_IOC6
-	clr	_IOA3
-	clr	_IOC6
+010002$:			   	// approx 73 cycles per byte
+	setb	_IOA3  // 2
+	setb	_IOC6  // 2
+	clr	_IOA3  // 2
+	clr	_IOC6  // 2
 
 	setb	_IOA3
 	setb	_IOC6
@@ -281,11 +276,11 @@ _asm
 	clr	_IOA3
 	clr	_IOC6
 	
-	dec	r5
-	cjne	r5,#0xff,010003$
+	dec	r5			// 1
+	cjne	r5,#0xff,010003$	// 4
 	dec	r6 
 	sjmp	010003$
-_endasm;    
+__endasm;    
 }
 
 #include[ztex-fpga-flash.h]

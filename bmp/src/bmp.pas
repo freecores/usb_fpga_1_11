@@ -1,6 +1,6 @@
 {*!
    bmp -- babel macro processor
-   Copyright (C) 2009-2010 ZTEX e.K.
+   Copyright (C) 2009-2011 ZTEX GmbH.
    http://www.ztex.de
 
    This program is free software; you can redistribute it and/or modify
@@ -56,6 +56,9 @@ meta macros:
   exactcase
 
   noexpand
+
+  disablelineinfo 	disables line info for next define
+  
 }
 
 {$mode objfpc}
@@ -425,6 +428,8 @@ var i,mode,j,k,l,ifc     : longint;
     ifli                 : array[0..maxifs] of dword;
     bli		         : array[0..maxbs] of dword;
 
+    disablelineinfo      : boolean;
+
 label endparse;
 
 begin
@@ -449,6 +454,7 @@ mode:=bm_plain;
 ifc:=-1;
 outfile:=1;
 bm_expand:=bm_plain;
+disablelineinfo:=false;
 
 prevli:=dword(-1);
 ampos:=0;
@@ -839,6 +845,10 @@ while (buf<>nil) and (bmp_exit<>bmp_exit_usererror) do
               for i:=1 to macros[lastmacro]^.pn-1 do
                 if macros[lastmacro]^.paramsep[i]='' then macros[lastmacro]^.paramsep[i]:=bc_cb+bc_ob;
               lastmodestr1(bm_def_scb3, macros[lastmacro]^.rsize, macros[lastmacro]^.r, macros[lastmacro]^.li);
+              if disablelineinfo then
+                for i:=0 to macros[lastmacro]^.rsize-1 do
+                  macros[lastmacro]^.li[i]:=macros[lastmacro]^.li[i] or 2048;
+              disablelineinfo:=false;
               end;
            if (mode=bm_def_scbu) and (bl=0) then
               begin
@@ -1011,6 +1021,7 @@ while (buf<>nil) and (bmp_exit<>bmp_exit_usererror) do
               if matchstr(bc_pm+'enableout',bm_pm) then bufm[rbp]:=bm_outfile_a+1;
               if matchstr(bc_pm+'ignorecase',bm_pm) then bp_icase:=true;
               if matchstr(bc_pm+'exactcase',bm_pm) then bp_icase:=false;
+              if matchstr(bc_pm+'disablelineinfo',bm_pm) then disablelineinfo:=true;
               end;
 
 {expanding mode}

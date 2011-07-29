@@ -1,6 +1,6 @@
 /*!
-   ZTEX Firmware Kit for EZ-USB Microcontrollers
-   Copyright (C) 2009-2010 ZTEX e.K.
+   ZTEX Firmware Kit for EZ-USB FX2 Microcontrollers
+   Copyright (C) 2009-2011 ZTEX GmbH.
    http://www.ztex.de
 
    This program is free software; you can redistribute it and/or modify
@@ -32,9 +32,9 @@
 #define[bmBIT6][64]
 #define[bmBIT7][128]
 
-#define[NOP;][_asm 
+#define[NOP;][__asm 
 	nop 
-    _endasm;
+    __endasm;
 ]
 
 #define[MSB(][)][((BYTE)((((unsigned short)($0)) >> 8) & 0xff)) ]
@@ -63,8 +63,8 @@ typedef unsigned long DWORD;
     For Vendor Requests HSNAK bit is always cleared at the end of SUDAV_ISR.
 */
 
-xdata WORD ep0_payload_remaining = 0;		// remaining amount of ep0 payload data (excluding the data of the current transfer)
-xdata BYTE ep0_payload_transfer = 0;		// transfer
+__xdata WORD ep0_payload_remaining = 0;		// remaining amount of ep0 payload data (excluding the data of the current transfer)
+__xdata BYTE ep0_payload_transfer = 0;		// transfer
 
 /* *********************************************************************
    *********************************************************************
@@ -96,8 +96,9 @@ void uwait(WORD short us) {	  // wait in 10µs steps
    ***** MEM_COPY ******************************************************
    ********************************************************************* */
 // copies 1..256 bytes 
-void MEM_COPY1_int() __naked {
-	_asm
+void MEM_COPY1_int() // __naked 
+{
+	__asm
 020001$:
 	    mov		_AUTOPTRSETUP,#0x07
 	    mov		dptr,#_XAUTODAT1
@@ -106,7 +107,7 @@ void MEM_COPY1_int() __naked {
 	    movx	@dptr,a
 	    djnz	r2, 020001$
 	    ret
-	_endasm;
+	__endasm;
 }
 
 /* 
@@ -121,12 +122,12 @@ void MEM_COPY1_int() __naked {
 	AUTOPTRH1=HI(&($0));
 	AUTOPTRL2=LO(&($1));
 	AUTOPTRH2=HI(&($1));
-        _asm
+        __asm
 		push	ar2
   		mov	r2,#($2);
 		lcall 	_MEM_COPY1_int
 		pop	ar2
-        _endasm; 
+        __endasm; 
 }]
 
 

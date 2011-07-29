@@ -1,6 +1,6 @@
 /*!
-   ZTEX Firmware Kit for EZ-USB Microcontrollers
-   Copyright (C) 2009-2010 ZTEX e.K.
+   ZTEX Firmware Kit for EZ-USB FX2 Microcontrollers
+   Copyright (C) 2009-2011 ZTEX GmbH.
    http://www.ztex.de
 
    This program is free software; you can redistribute it and/or modify
@@ -36,13 +36,13 @@
 //#warning[FLASH_CS_BIT=7]
 #endif
 
-xdata BYTE flash_buffer = 1;          // current buffer 1
-xdata BYTE flash_bufferModified = 0;  // 1 indicates that the current flash page needs to be reprogrammeded
-xdata WORD flash_page = 0xffff;       // current flash page
-xdata WORD flash_nextPage = 0xffff;   // next flash page (usually flashPage+1)
-xdata WORD flash_maxPage = 0;         // next flash page (usually flashPage+1)
-xdata WORD flash_pageSize = 528;      // page size (512 or 528)
-xdata BYTE flash_register[4];         // used to store register content 
+__xdata BYTE flash_buffer = 1;          // current buffer 1
+__xdata BYTE flash_bufferModified = 0;  // 1 indicates that the current flash page needs to be reprogrammeded
+__xdata WORD flash_page = 0xffff;       // current flash page
+__xdata WORD flash_nextPage = 0xffff;   // next flash page (usually flashPage+1)
+__xdata WORD flash_maxPage = 0;         // next flash page (usually flashPage+1)
+__xdata WORD flash_pageSize = 528;      // page size (512 or 528)
+__xdata BYTE flash_register[4];         // used to store register content 
 
 /* *********************************************************************
    ***** flash_setPage *************************************************

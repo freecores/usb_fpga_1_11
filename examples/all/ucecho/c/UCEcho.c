@@ -1,6 +1,6 @@
 /*!
    UCEcho -- C host software for ucecho examples
-   Copyright (C) 2009-2010 ZTEX e.K.
+   Copyright (C) 2009-2011 ZTEX GmbH.
    http://www.ztex.de
 
    This program is free software; you can redistribute it and/or modify

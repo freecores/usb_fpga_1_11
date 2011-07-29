@@ -100,7 +100,7 @@ public class LibusbJava {
 	 * @return a handle used in future communication with the device. 0 if an
 	 *         error has occurred.
 	 */
-	public static native int usb_open(Usb_Device dev);
+	public static native long usb_open(Usb_Device dev);
 
 	/**
 	 * <code>usb_close</code> closes a device opened with
@@ -110,7 +110,7 @@ public class LibusbJava {
 	 *            The handle to the device.
 	 * @return 0 on success or < 0 on error.
 	 */
-	public static native int usb_close(int dev_handle);
+	public static native int usb_close(long dev_handle);
 
 	/**
 	 * Sets the active configuration of a device
@@ -122,7 +122,7 @@ public class LibusbJava {
 	 *            bConfigurationValue.
 	 * @return 0 on success or < 0 on error.
 	 */
-	public static native int usb_set_configuration(int dev_handle,
+	public static native int usb_set_configuration(long dev_handle,
 			int configuration);
 
 	/**
@@ -135,7 +135,7 @@ public class LibusbJava {
 	 *            bAlternateSetting.
 	 * @return 0 on success or < 0 on error.
 	 */
-	public static native int usb_set_altinterface(int dev_handle, int alternate);
+	public static native int usb_set_altinterface(long dev_handle, int alternate);
 
 	/**
 	 * Clears any halt status on an endpoint.
@@ -146,7 +146,7 @@ public class LibusbJava {
 	 *            The value specified in the descriptor field bEndpointAddress.
 	 * @return 0 on success or < 0 on error.
 	 */
-	public static native int usb_clear_halt(int dev_handle, int ep);
+	public static native int usb_clear_halt(long dev_handle, int ep);
 
 	/**
 	 * Resets a device by sending a RESET down the port it is connected to.<br>
@@ -160,7 +160,7 @@ public class LibusbJava {
 	 *            The handle to the device.
 	 * @return 0 on success or < 0 on error.
 	 */
-	public static native int usb_reset(int dev_handle);
+	public static native int usb_reset(long dev_handle);
 
 	/**
 	 * Claim an interface of a device.<br>
@@ -176,7 +176,7 @@ public class LibusbJava {
 	 *            bInterfaceNumber.
 	 * @return 0 on success or < 0 on error.
 	 */
-	public static native int usb_claim_interface(int dev_handle, int interface_);
+	public static native int usb_claim_interface(long dev_handle, int interface_);
 
 	/**
 	 * Releases a previously claimed interface
@@ -188,7 +188,7 @@ public class LibusbJava {
 	 *            bInterfaceNumber.
 	 * @return 0 on success or < 0 on error.
 	 */
-	public static native int usb_release_interface(int dev_handle,
+	public static native int usb_release_interface(long dev_handle,
 			int interface_);
 
 	// Control Transfers
@@ -207,7 +207,7 @@ public class LibusbJava {
 	 * @param timeout
 	 * @return the number of bytes written/read or < 0 on error.
 	 */
-	public static native int usb_control_msg(int dev_handle, int requesttype,
+	public static native int usb_control_msg(long dev_handle, int requesttype,
 			int request, int value, int index, byte[] bytes, int size,
 			int timeout);
 
@@ -221,7 +221,7 @@ public class LibusbJava {
 	 * @param langid
 	 * @return the descriptor String or null
 	 */
-	public static native String usb_get_string(int dev_handle, int index,
+	public static native String usb_get_string(long dev_handle, int index,
 			int langid);
 
 	/**
@@ -234,13 +234,13 @@ public class LibusbJava {
 	 * @param index
 	 * @return the descriptor String or null
 	 */
-	public static native String usb_get_string_simple(int dev_handle, int index);
+	public static native String usb_get_string_simple(long dev_handle, int index);
 
 	/**
 	 * Retrieves a descriptor from the device identified by the type and index
 	 * of the descriptor from the default control pipe.<br>
 	 * <br>
-	 * See {@link #usb_get_descriptor_by_endpoint(int, int, byte, byte, int)}
+	 * See {@link #usb_get_descriptor_by_endpoint(long, int, byte, byte, int)}
 	 * for a function that allows the control endpoint to be specified.
 	 * 
 	 * @param dev_handle
@@ -252,7 +252,7 @@ public class LibusbJava {
 	 *            resulting String)
 	 * @return the descriptor String or null
 	 */
-	public static native String usb_get_descriptor(int dev_handle, byte type,
+	public static native String usb_get_descriptor(long dev_handle, byte type,
 			byte index, int size);
 
 	/**
@@ -269,7 +269,7 @@ public class LibusbJava {
 	 *            resulting String)
 	 * @return the descriptor String or null
 	 */
-	public static native String usb_get_descriptor_by_endpoint(int dev_handle,
+	public static native String usb_get_descriptor_by_endpoint(long dev_handle,
 			int ep, byte type, byte index, int size);
 
 	// Bulk Transfers
@@ -284,7 +284,7 @@ public class LibusbJava {
 	 * @param timeout
 	 * @return the number of bytes written on success or < 0 on error.
 	 */
-	public static native int usb_bulk_write(int dev_handle, int ep,
+	public static native int usb_bulk_write(long dev_handle, int ep,
 			byte[] bytes, int size, int timeout);
 
 	/**
@@ -298,7 +298,7 @@ public class LibusbJava {
 	 * @param timeout
 	 * @return the number of bytes read on success or < 0 on error.
 	 */
-	public static native int usb_bulk_read(int dev_handle, int ep,
+	public static native int usb_bulk_read(long dev_handle, int ep,
 			byte[] bytes, int size, int timeout);
 
 	// Interrupt Transfers
@@ -313,7 +313,7 @@ public class LibusbJava {
 	 * @param timeout
 	 * @return the number of bytes written on success or < 0 on error.
 	 */
-	public static native int usb_interrupt_write(int dev_handle, int ep,
+	public static native int usb_interrupt_write(long dev_handle, int ep,
 			byte[] bytes, int size, int timeout);
 
 	/**
@@ -327,7 +327,7 @@ public class LibusbJava {
 	 * @param timeout
 	 * @return the number of bytes read on success or < 0 on error.
 	 */
-	public static native int usb_interrupt_read(int dev_handle, int ep,
+	public static native int usb_interrupt_read(long dev_handle, int ep,
 			byte[] bytes, int size, int timeout);
 
 	/**
@@ -359,10 +359,22 @@ public class LibusbJava {
 	private static native int usb_error_no(int value);
 
 	static {
+//		System.out.println("os.name: " + System.getProperty("os.name"));
+//		System.out.println("os.arch: " + System.getProperty("os.arch"));
 		String os = System.getProperty("os.name");
 		if (os.contains("Windows")) {
-	    	    LibLoader.load( "libusbJava" );
-		} else {
+		    if ( System.getProperty("os.arch").equalsIgnoreCase("amd64") ) {
+	    		LibLoader.load( "libusbJava64" );
+	    	    }
+	    	    else {
+	    		LibLoader.load( "libusbJava32" ); 
+	    	    }
+	    	}
+		else if ( System.getProperty("os.arch").equalsIgnoreCase("amd64") ) {
+	    		LibLoader.load( "usbJava64" );
+//	    		System.err.println("loaded libusbJava64");
+		}
+		else {
 		    try {
 	    		LibLoader.load( "usbJavaSh" );
 //	    		System.err.println("loaded libusbJavaSh");

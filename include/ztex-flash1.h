@@ -1,6 +1,6 @@
 /*!
-   ZTEX Firmware Kit for EZ-USB Microcontrollers
-   Copyright (C) 2009-2010 ZTEX e.K.
+   ZTEX Firmware Kit for EZ-USB FX2 Microcontrollers
+   Copyright (C) 2009-2011 ZTEX GmbH.
    http://www.ztex.de
 
    This program is free software; you can redistribute it and/or modify
@@ -17,7 +17,8 @@
 !*/
 
 /*
-    SPI mode of MMC / *SD Cards
+    Support for SD cards in SPI mode. 
+    This module is not MMC compatible anymore since multi block read/write commands are used.
 */    
 
 #ifeq[MMC_PORT][E]
@@ -82,15 +83,17 @@
 // may be redefined if the first sectors are reserved (e.g. for a FPGA bitstream)
 #define[FLASH_FIRST_FREE_SECTOR][0]
 
-xdata BYTE flash_enabled;	// 0	1: enabled, 0:disabled
-xdata WORD flash_sector_size;   // 1    sector size
-xdata DWORD flash_sectors;	// 3	number of sectors
-xdata BYTE flash_ec; 	        // 7	error code
+__xdata BYTE flash_enabled;	// 0	1: enabled, 0:disabled
+__xdata WORD flash_sector_size; // 1    sector size
+__xdata DWORD flash_sectors;	// 3	number of sectors
+__xdata BYTE flash_ec; 	        // 7	error code
 
-xdata BYTE mmc_last_cmd;	// 0
-xdata BYTE mmc_response;	// 1
-xdata BYTE mmc_version;		// 2
-xdata BYTE mmc_buffer[16];	// 3
+__xdata BYTE mmc_last_cmd;	// 0
+__xdata BYTE mmc_response;	// 1
+__xdata BYTE mmc_version;	// 2
+__xdata BYTE mmc_buffer[16];	// 3
+
+__xdata BYTE mmc_ep0_wait;
 
 #define[FLASH_EC_CMD_ERROR][1]
 #define[FLASH_EC_TIMEOUT][2]
@@ -106,7 +109,7 @@ xdata BYTE mmc_buffer[16];	// 3
 // perform c (256 if c=0) clocks
 void mmc_clocks (BYTE c) {
 	c;					// this avoids stupid warnings
-_asm
+__asm
 	mov 	r2,dpl
 #ifdef[MMC_bmMODE]
 	mov 	a,_MMC_IO
@@ -125,7 +128,7 @@ _asm
         clr	_MMC_CLK
 #endif
 	djnz 	r2,010014$
-_endasm;    
+__endasm;    
 }
 
 
@@ -134,7 +137,7 @@ _endasm;
    ********************************************************************* */
 // read a single byte from the flash
 BYTE flash_read_byte() { // uses r2,r3,r4
-_asm  
+__asm  
 #ifdef[MMC_bmMODE]
 	// 8 - 1 + 8*13 + 1 + 6 = 118 clocks
 	mov 	a,_MMC_IO
@@ -258,7 +261,7 @@ _asm
 #endif
         mov	dpl,a
         ret
-_endasm;
+__endasm;
 	return 0;		// never ever called (just to avoid warnings)
 } 
 
@@ -269,7 +272,7 @@ _endasm;
 void flash_read(__xdata BYTE *buf, BYTE len) {
 	*buf;					// this avoids stupid warnings
 	len;					// this too
-_asm						// *buf is in dptr, len is in _flash_read_PARM_2
+__asm						// *buf is in dptr, len is in _flash_read_PARM_2
 	mov	r2,_flash_read_PARM_2
 #ifdef[MMC_bmMODE]
 	mov 	a,_MMC_IO
@@ -396,7 +399,7 @@ _asm						// *buf is in dptr, len is in _flash_read_PARM_2
 	movx	@dptr,a
 	inc	dptr
 	djnz 	r2,010012$
-_endasm;
+__endasm;
 } 
 
 /* *********************************************************************
@@ -405,7 +408,7 @@ _endasm;
 // send one bytes from buffer buf to the card
 void flash_write_byte (BYTE b) {	// b is in dpl
 	b;				// this avoids stupid warnings
-_asm
+__asm
 #ifdef[MMC_bmMODE]
 	// up to 7 + 8*12 + 6 = 109 clocks
 	mov 	a,_MMC_IO
@@ -515,7 +518,7 @@ _asm
 	nop
         clr	_MMC_CLK
 #endif	
-_endasm;
+__endasm;
 }  
 
 /* *********************************************************************
@@ -525,7 +528,7 @@ _endasm;
 void flash_write(__xdata BYTE *buf, BYTE len) {
 	*buf;					// this avoids stupid warnings
 	len;					// this too
-_asm						// *buf is in dptr, len is in _flash_read_PARM_2
+__asm						// *buf is in dptr, len is in _flash_read_PARM_2
 	mov	r2,_flash_read_PARM_2
 #ifdef[MMC_bmMODE]
 	// 7 + len*(2 + 8*12 + 7 ) + 6 = 13 + len*105 clocks
@@ -643,7 +646,7 @@ _asm						// *buf is in dptr, len is in _flash_read_PARM_2
 
 	djnz 	r2,010013$ 
 #endif
-_endasm;
+__endasm;
 } 
 
 /* *********************************************************************
@@ -654,6 +657,7 @@ BYTE mmc_wait_busy () {
     flash_ec = FLASH_EC_BUSY;
     MMC_IO |= MMC_bmDI;				// avoids that in-data is interpreted as command
     for (i=0; (flash_read_byte()!=255) && i<65535; i++ ) ;
+//    for (i=0; (flash_read_byte()==0) && i<65535; i++ ) ;
     if ( MMC__IO_DO & MMC_bmDO ) {
 	flash_ec = 0;
 	return 0;
@@ -693,7 +697,7 @@ void mmc_deselect() {
 // read the first response byte
 BYTE mmc_read_response() {
 	MMC_IO |= MMC_bmDI;			// avoids that in-data is interpreted as command
-_asm
+__asm
 	mov	r2,#0x255
 010010$:
 	lcall	_flash_read_byte
@@ -706,9 +710,26 @@ _asm
 	movx	@dptr,a
 	mov	dpl,a
 	ret
-_endasm;    
+__endasm;    
 	return 0;				// never ever called, just to avoid stupid warnings
 } 
+
+/* *********************************************************************
+   ***** mmc_send_cmd **************************************************
+   ********************************************************************* */
+// send a command   
+#define[mmc_send_cmd(][,$1.$2.$3.$4,$5);][{			// send a command, argument=0
+    mmc_clocks(8);				// 8 dummy clocks
+    mmc_last_cmd = $0;
+    mmc_buffer[0] = 64 | ($0 & 127);
+    mmc_buffer[1] = $1;
+    mmc_buffer[2] = $2;
+    mmc_buffer[3] = $3;
+    mmc_buffer[4] = $4;
+    mmc_buffer[5] = $5 | 1;
+    flash_write(mmc_buffer,6);
+    mmc_read_response();
+}]    
 
 /* *********************************************************************
    ***** mmc_wait_start ************************************************
@@ -732,7 +753,7 @@ BYTE mmc_wait_start() {
    ***** flash_read_init ***********************************************
    ********************************************************************* */
 /*
-   Start the initialization sequence for reading sector s-
+   Start the initialization sequence for reading sector s.
    The whole sector must be read.
    returns an error code (FLASH_EC_*). 0 means no error.
 */   
@@ -745,8 +766,8 @@ BYTE flash_read_init(DWORD s) {
 	return FLASH_EC_BUSY;
     }
     mmc_clocks(8);				// 8 dummy clocks
-    mmc_last_cmd = 17;
-    mmc_buffer[0] = 17 | 64;
+    mmc_last_cmd = 18;
+    mmc_buffer[0] = 18 | 64;
     if ( mmc_version == 0 ) {
 	s = s << 1;
 	mmc_buffer[1] = s >> 16;
@@ -776,6 +797,23 @@ BYTE flash_read_init(DWORD s) {
 }
 
 /* *********************************************************************
+   ***** flash_read_next ***********************************************
+   ********************************************************************* */
+/*
+   Initialization sequence for reading the next sector.
+   The whole sector must be read.
+   returns an error code (FLASH_EC_*). 0 means no error.
+*/   
+BYTE flash_read_next() {
+    mmc_clocks(16);				// 16 CRC clocks
+    if ( mmc_wait_start() ) {			// wait for the start byte
+	mmc_deselect();
+	return FLASH_EC_TIMEOUT;
+    }
+    return 0;
+}
+
+/* *********************************************************************
    ***** flash_read_finish *********************************************
    ********************************************************************* */
 /*
@@ -784,12 +822,15 @@ BYTE flash_read_init(DWORD s) {
 */   
 void flash_read_finish(WORD n) {
     while ( n > 32 ) {
-	mmc_clocks(0);				// 256 clocks = 32 dummy bytes
+	mmc_clocks(0);			// 256 clocks = 32 dummy bytes
 	n-=32;
     }
     mmc_clocks(n << 3);
-    mmc_clocks(24);				// 16 CRC + 8 dummy clocks
-    mmc_deselect();
+    mmc_clocks(16);			// 16 CRC clocks 
+    mmc_send_cmd(12, 0.0.0.0, 0);	// stop transmission command, errors are ignored
+//    mmc_wait_busy();			// not required here
+    mmc_clocks(8);			// 8 dummy clocks
+   mmc_deselect();
 }
 
 
@@ -798,7 +839,7 @@ void flash_read_finish(WORD n) {
    ********************************************************************* */
 /*
    Start the initialization sequence for writing sector s
-   The whole sectir must be written.
+   The whole sector must be written.
    returns an error code (FLASH_EC_*). 0 means no error.
 */   
 BYTE flash_write_init(DWORD s) {
@@ -810,8 +851,8 @@ BYTE flash_write_init(DWORD s) {
 	return FLASH_EC_BUSY;
     }
     mmc_clocks(8);				// 8 dummy clocks
-    mmc_last_cmd = 24;
-    mmc_buffer[0] = 24 | 64;
+    mmc_last_cmd = 25;
+    mmc_buffer[0] = 25 | 64;
     if ( mmc_version == 0 ) {
 	s = s << 1;
 	mmc_buffer[1] = s >> 16;
@@ -833,24 +874,27 @@ BYTE flash_write_init(DWORD s) {
 	return FLASH_EC_CMD_ERROR; 
     }
 
-    MMC_IO |= MMC_bmDI;					// send one dummy byte plus the start byte 0xfe
-    mmc_clocks(15);
-    MMC_IO &= ~MMC_bmDI;			
-    MMC_IO |= MMC_bmCLK;			
-    MMC_IO &= ~MMC_bmCLK;			
+    MMC_IO |= MMC_bmDI;				
+    mmc_clocks(8);				// send one dummy byte
+    flash_write_byte( 0xfc );			// send the start byte
     return 0;
 }
 
 /* *********************************************************************
-   ***** flash_write_finish ********************************************
+   ***** flash_write_finish_sector *************************************
    ********************************************************************* */
 /*
-   Writes n dummy bytes (the whole sector has to be written)
-   and runs the finalization sequence for a sector write
-   returns an error code (FLASH_EC_*). 0 means no error.
+   Writes the rest of the sector (n dummy bytes + CRC, the whole sector has to be written)
+   but do not write the finalization procedure. This is done by flash_write_finish 
+   or flash_write_next, i.e. these functions must be called after flash_write_finish_sector.
+   
+   Between flash_write_finish / flash_write_next and flash_write_finish_sector some code
+   may be executed because flash_write_finish / flash_write_next start with
+   mmc_wauit_busy().
+
+   Returns an error code (FLASH_EC_*). 0 means no error.
 */   
-BYTE flash_write_finish(WORD n) {
-    BYTE b;
+BYTE flash_write_finish_sector (WORD n) {
     MMC_IO &= ~MMC_bmDI;			// value of the dummy data is 0
     while ( n > 32 ) {
 	mmc_clocks(0);				// 256 clocks = 32 dummy bytes
@@ -860,31 +904,40 @@ BYTE flash_write_finish(WORD n) {
 
     MMC_IO |= MMC_bmDI;
     mmc_clocks(16);				// 16 CRC clocks
-    b = flash_read_byte() & 7;
-//    mmc_wait_busy();				// not required here, programming continues if card is deslected
-    mmc_deselect();
-    if ( b != 5 ) {				// data response, last three bits must be 5
-	return FLASH_EC_WRITE_ERROR; 
-    }
+
+    if ( (flash_read_byte() & 0xf) != 5 ) {	// data response: last four bits must be 5
+       flash_ec = FLASH_EC_WRITE_ERROR; 
+       mmc_send_cmd(12, 0.0.0.0, 0);		// stop transmission command, errors are ignored
+       mmc_clocks(8);				// 8 dummy clocks
+       mmc_deselect();
+       return FLASH_EC_WRITE_ERROR; 
+    }   
     return 0;
 }
-   
+
 /* *********************************************************************
-   ***** mmc_send_cmd **************************************************
+   ***** flash_write_finish ********************************************
    ********************************************************************* */
-// send a command   
-#define[mmc_send_cmd(][,$1.$2.$3.$4,$5);][{			// send a command, argument=0
+/*
+   Stops the write transimssion, see flash_write_finish1.
+*/   
+void flash_write_finish () {
+    mmc_wait_busy();			
+    flash_write_byte( 0xfd );			// send the stop byte
     mmc_clocks(8);				// 8 dummy clocks
-    mmc_last_cmd = $0;
-    mmc_buffer[0] = 64 | ($0 & 127);
-    mmc_buffer[1] = $1;
-    mmc_buffer[2] = $2;
-    mmc_buffer[3] = $3;
-    mmc_buffer[4] = $4;
-    mmc_buffer[5] = $5 | 1;
-    flash_write(mmc_buffer,6);
-    mmc_read_response();
-}]    
+    mmc_deselect();
+}
+
+/* *********************************************************************
+   ***** flash_write_next **********************************************
+   ********************************************************************* */
+/*
+   Prepare the nexte sector for write transimssion, see flash_write_finish1.
+*/   
+void flash_write_next () {
+    mmc_wait_busy();			
+    flash_write_byte( 0xfc );			// send the stop byte
+}
 
 /* *********************************************************************
    ***** flash_init ****************************************************
@@ -907,9 +960,12 @@ void flash_init() {
     mmc_select();				// select te card
     flash_ec = FLASH_EC_BUSY;
 	
-    mmc_send_cmd(0, 0.0.0.0, 0x95);			// send reset command
+    mmc_send_cmd(0, 0.0.0.0, 0x95);		// send reset command
     if ( mmc_response & ~1 ) {			// check for errors
-	goto mmc_init_cmd_err;
+	wait(50);				
+	mmc_send_cmd(0, 0.0.0.0, 0x95);		// 2nd try
+	if ( mmc_response & ~1 ) 		// check for errors 
+	    goto mmc_init_cmd_err;
     }
     
     // send cmd8, valid ? 2.0 mode : 1.xx mode
@@ -1005,14 +1061,32 @@ ADD_EP0_VENDOR_REQUEST((0x40,,
    ***** EP0 vendor request 0x41 ***************************************
    ********************************************************************* */
 void mmc_read_ep0 () { 
+    if ( mmc_ep0_wait ) {
+	mmc_ep0_wait = 0;
+	if ( mmc_wait_start() ) {		// wait for the start byte of the next block
+	    flash_ec = FLASH_EC_TIMEOUT;
+            mmc_send_cmd(12, 0.0.0.0, 0);	// stop transmission command
+    	    mmc_clocks(8);			// 8 dummy clocks
+	    mmc_deselect();
+	    return;
+	}
+    }
+
     flash_read(EP0BUF, ep0_payload_transfer);
     if ( ep0_payload_remaining == 0 ) {
-	mmc_clocks(24);				// 16 CRC + 8 dummy clocks
+	mmc_clocks(16);				// 16 CRC clocks 
+	mmc_send_cmd(12, 0.0.0.0, 0);		// stop transmission command, errors are ignored
+//	mmc_wait_busy();			// not required here
+	mmc_clocks(8);				// 8 dummy clocks
 	mmc_deselect();
     } 
+    else if ( (ep0_payload_remaining & 511) == 0 ) {
+	mmc_clocks(16);				// 16 CRC clocks
+	mmc_ep0_wait = 1;
+    }   
 }
 
-ADD_EP0_VENDOR_REQUEST((0x41,,			// read (exactly) one sector
+ADD_EP0_VENDOR_REQUEST((0x41,,			// read integer number of sectotrs
     if ( (MMC_IO & MMC_bmCS) == 0 ) {
 	flash_ec = FLASH_EC_PENDING;		// we interrupted a pending Flash operation
 	EP0_STALL;
@@ -1022,10 +1096,10 @@ ADD_EP0_VENDOR_REQUEST((0x41,,			// read (exactly) one sector
 	EP0_STALL;
     }
     mmc_clocks(8);				// 8 dummy clocks
-    mmc_last_cmd = 17;
-    mmc_buffer[0] = 17 | 64;
+    mmc_last_cmd = 18;
+    mmc_buffer[0] = 18 | 64;
     if ( mmc_version == 0 ) {
-_asm
+__asm
     clr c
     mov	dptr,#(_SETUPDAT + 2)
     movx a,@dptr
@@ -1044,7 +1118,7 @@ _asm
     mov	dptr,#(_mmc_buffer + 1)
     rlc a
     movx @dptr,a
-_endasm;
+__endasm;
 	mmc_buffer[4] = 0;
     }
     else {
@@ -1062,19 +1136,21 @@ _endasm;
 	EP0_STALL;
     }
 
-    if ( mmc_wait_start() ) {			// wait for the start byte
-	flash_ec = FLASH_EC_TIMEOUT;
-	mmc_deselect();
-	EP0_STALL;
-    }
-
-    mmc_read_ep0(); 
+    mmc_ep0_wait = 1;
+    mmc_read_ep0();  
+    if ( flash_ec != 0 ) {
+        EP0_STALL;
+    } 
     EP0BCH = 0;
     EP0BCL = ep0_payload_transfer; 
 ,,
     if ( ep0_payload_transfer != 0 ) {
+	flash_ec = 0;
         mmc_read_ep0(); 
-    }
+        if ( flash_ec != 0 ) {
+	    EP0_STALL;
+	} 
+    } 
     EP0BCH = 0;
     EP0BCL = ep0_payload_transfer;
 ));;
@@ -1083,19 +1159,37 @@ _endasm;
    ***** EP0 vendor command 0x42 ***************************************
    ********************************************************************* */
 void mmc_send_ep0 () { 
+    if ( mmc_ep0_wait ) {
+	mmc_ep0_wait = 0;
+	mmc_wait_busy();			
+        flash_write_byte( 0xfc );			// send the start byte of the next data block
+    }
+    
     flash_write(EP0BUF, ep0_payload_transfer);
-    if ( ep0_payload_remaining == 0 ) {
+    if ( (ep0_payload_remaining & 511) == 0 ) {
 	MMC_IO |= MMC_bmDI;
-	mmc_clocks(16);				// 16 CRC clocks
-	if ( (flash_read_byte() & 7) != 5 ) {	// data response, last three bits must be 5
-	    flash_ec = FLASH_EC_WRITE_ERROR; 
+	mmc_clocks(16);					// 16 CRC clocks
+
+	if ( (flash_read_byte() & 0xf) != 5 ) {		// data response: last four bits must be 5
+	   flash_ec = FLASH_EC_WRITE_ERROR; 
+	   mmc_send_cmd(12, 0.0.0.0, 0);		// stop transmission command, errors are ignored
+	   mmc_clocks(8);				// 8 dummy clocks
+	   mmc_deselect();
 	} 
-//	mmc_wait_busy();			// not required here, programming continues if card is deselected
-	mmc_deselect();
+
+	if ( ep0_payload_remaining != 0 ) {
+	    mmc_ep0_wait = 1;
+    	}
+    	else {
+	    mmc_wait_busy();			
+    	    flash_write_byte( 0xfd );			// send the stop byte
+	    mmc_clocks(8);				// 8 dummy clocks
+	    mmc_deselect();
+	}
     }
 }
 
-ADD_EP0_VENDOR_COMMAND((0x42,,			// write (exactly!) one sector
+ADD_EP0_VENDOR_COMMAND((0x42,,			// write integer number of sectors
     if ( (MMC_IO & MMC_bmCS) == 0 ) {
 	flash_ec = FLASH_EC_PENDING;		// we interrupted a pending Flash operation
 	EP0_STALL;
@@ -1105,10 +1199,10 @@ ADD_EP0_VENDOR_COMMAND((0x42,,			// write (exactly!) one sector
 	EP0_STALL;
     }
     mmc_clocks(8);				// 8 dummy clocks
-    mmc_last_cmd = 24;
-    mmc_buffer[0] = 24 | 64;
+    mmc_last_cmd = 25;
+    mmc_buffer[0] = 25 | 64;
     if ( mmc_version == 0 ) {
-_asm
+__asm
     clr c
     mov	dptr,#(_SETUPDAT + 2)
     movx a,@dptr
@@ -1127,7 +1221,7 @@ _asm
     mov	dptr,#(_mmc_buffer + 1)
     rlc a
     movx @dptr,a
-_endasm;
+__endasm;
 	mmc_buffer[4] = 0;
     }
     else {
@@ -1146,11 +1240,10 @@ _endasm;
 	EP0_STALL;
     }	
 
-    MMC_IO |= MMC_bmDI;					// send one dummy byte plus the start byte 0xfe
-    mmc_clocks(15);
-    MMC_IO &= ~MMC_bmDI;			
-    MMC_IO |= MMC_bmCLK;			
-    MMC_IO &= ~MMC_bmCLK;			
+    MMC_IO |= MMC_bmDI;				
+    mmc_clocks(8);				// send one dummy byte
+    flash_write_byte( 0xfc );			// send the start byte
+    mmc_ep0_wait = 0;
 ,,
     if ( ep0_payload_transfer != 0 ) {
 	flash_ec = 0;

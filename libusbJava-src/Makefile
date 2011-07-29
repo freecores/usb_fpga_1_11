@@ -19,18 +19,22 @@ JAVAPREFIX=/usr/local/java
 # this should not be modified #
 ###############################
 GCC=gcc
+STRIP=strip
+CHMOD=chmod -x
 JAVAC=javac
 RM=rm -f
 INSTALL=install
 INSTALLDIR=$(INSTALL) -d 
 INSTALLEXE=$(INSTALL) -m 0755
 INSTALLFILE=$(INSTALL) -m 0644
-LIBSRCS=LibusbJava.c
-LIBEXTRADEPS=LibusbJava.h
+OBJEXTRADEPS=LibusbJava.h
+LIBSRCS=LibusbJava.o
+LIBSRCS64=LibusbJava.c
 JAVASRCS=$(shell echo ch/ntb/usb/*.java) $(shell echo ch/ntb/usb/logger/*.java)
 
 LIBTARGET_SH=libusbJavaSh.so
 LIBTARGET_ST=libusbJavaSt.so
+LIBTARGET_64=libusbJava64.so
 LIBLIBS=-lusb
 LIBINCS=-I $(JAVAPREFIX)/include -I $(JAVAPREFIX)/include/linux
 
@@ -40,13 +44,26 @@ all: libs classes
 
 classes: classes.made
 
-libs: $(LIBTARGET_SH) $(LIBTARGET_ST)
+libs: $(LIBTARGET_SH) $(LIBTARGET_ST) $(LIBTARGET_64)
 
-$(LIBTARGET_ST): $(LIBSRCS) $(LIBEXTRADEPS)
-	$(GCC) -shared -std=c99 -Wall -Wl,-static,-soname,$(LIBTARGET_ST) $(LIBINCS) -static $(LIBSRCS) -o $(LIBTARGET_ST) $(LIBLIBS)
+%.o: %.c LibusbJava.h
+	$(GCC) -fPIC -g -c -std=c99 -Wall -Wno-pointer-to-int-cast $(LIBINCS) $< -o$@
 
-$(LIBTARGET_SH): $(LIBSRCS) $(LIBEXTRADEPS)
-	$(GCC) -shared -std=c99 -Wall -Wl,-soname,$(LIBTARGET_SH) $(LIBINCS) $(LIBSRCS) -o $(LIBTARGET_SH) $(LIBLIBS)
+$(LIBTARGET_ST): $(LIBSRCS)
+#	$(GCC) -shared -Wl,-static,-soname,$(LIBTARGET_ST) $(LIBINCS) -static $(LIBSRCS) -o $(LIBTARGET_ST) $(LIBLIBS)
+	$(GCC) -shared -Wl,-soname,$(LIBTARGET_ST),-static $(LIBINCS) $(LIBSRCS) -static -o $(LIBTARGET_ST) $(LIBLIBS)
+	$(STRIP) $(LIBTARGET_ST)
+	$(CHMOD) $(LIBTARGET_ST)
+
+$(LIBTARGET_SH): $(LIBSRCS)
+	$(GCC) -fPIC -shared -Wl,-soname,$(LIBTARGET_SH) $(LIBINCS) $(LIBSRCS) -o $(LIBTARGET_SH) $(LIBLIBS)
+	$(STRIP) $(LIBTARGET_SH)
+	$(CHMOD) $(LIBTARGET_SH)
+
+$(LIBTARGET_64): $(LIBSRCS64)
+	$(GCC) -fPIC -m64 -shared -std=c99 -Wall -Wno-pointer-to-int-cast -Wl,-soname,$(LIBTARGET_64) $(LIBINCS) $(LIBSRCS64) $(LIBLIBS) -o $(LIBTARGET_64)
+	$(STRIP) $(LIBTARGET_64)
+	$(CHMOD) $(LIBTARGET_64)
 
 classes.made: $(JAVASRCS)
 	$(JAVAC) $(JAVASRCS)
@@ -59,11 +76,11 @@ install2: all
 	$(INSTALLDIR) ../libusbJava/ch/ntb/usb/logger
 	$(INSTALLFILE) $(LIBTARGET_SH) ../libusbJava
 	$(INSTALLFILE) $(LIBTARGET_ST) ../libusbJava
+	$(INSTALLFILE) $(LIBTARGET_64) ../libusbJava
 	$(INSTALLFILE) ch/ntb/usb/*.class ../libusbJava/ch/ntb/usb
 	$(INSTALLFILE) ch/ntb/usb/logger/*.class ../libusbJava/ch/ntb/usb/logger
 
 clean:
-	$(RM) *.o
 
 distclean:
-	$(RM) $(LIBTARGET_SH) $(LIBTARGET_ST) ch/ntb/usb/*.class ch/ntb/usb/logger/*.class classes.made
+	$(RM) *.o $(LIBTARGET_SH) $(LIBTARGET_ST) $(LIBTARGET_64) libusbJava*.dll ch/ntb/usb/*.class ch/ntb/usb/logger/*.class classes.made

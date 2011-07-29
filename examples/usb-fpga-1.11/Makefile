@@ -1,4 +1,4 @@
-DIRS=flashdemo flashbench standalone 1.11b 1.11c
+DIRS=flashdemo flashbench standalone nvmtest 1.11a 1.11b 1.11c
 
 .PHONY: default all clean distclean
 

@@ -1,6 +1,6 @@
 /*!
-   ZTEX Firmware Kit for EZ-USB Microcontrollers
-   Copyright (C) 2009-2010 ZTEX e.K.
+   ZTEX Firmware Kit for EZ-USB FX2 Microcontrollers
+   Copyright (C) 2009-2011 ZTEX GmbH.
    http://www.ztex.de
 
    This program is free software; you can redistribute it and/or modify
@@ -26,9 +26,11 @@
 /* 
    Don't expand macros in comments
 */
+#disablelineinfo
 #define[//][
 ][#noexpand[!dnapxeon!]//$0!dnapxeon!
 ]
+#disablelineinfo
 #define[/*][*/][#noexpand[!dnapxeon!]/*$0*/!dnapxeon!]
 
 /* 
@@ -375,6 +377,18 @@ EP_POLL(8,1);
 #define[PRODUCT_IS][UFM-1_11]
 #define[PRODUCT_STRING]["USB-FPGA Module 1.11"]]
 
+/* 
+   Identify as ZTEX USB FPGA Module 1.15
+   Usage: IDENTITY_UFM_1_10(<PRODUCT_ID_0>.<PRODUCT_ID_1><PRODUCT_ID_2>.<PRODUCT_ID_3>,<FW_VERSION>);
+*/
+#define[IDENTITY_UFM_1_15(][.$1.$2.$3,$4);][#define[PRODUCT_ID_0][$0]
+#define[PRODUCT_ID_1][$1]
+#define[PRODUCT_ID_2][$2]
+#define[PRODUCT_ID_3][$3]
+#define[FWVER][$4]
+#define[PRODUCT_IS][UFM-1_15]
+#define[PRODUCT_STRING]["USB-FPGA Module 1.15"]]
+
 
 /* 
    Identify as ZTEX USB Module 1.0
@@ -458,8 +472,34 @@ EP_POLL(8,1);
 
 /* 
    This macro disables XMEGA support, if available
-   Usage: ENABLE_FLASH; 
+   Usage: XMEGA_DISABLE;
 */
-#define[XMEGA_DISABLED;][#define[XMEGA_DISABLED][1]]
+#define[XMEGA_DISABLE;][#define[XMEGA_DISABLED][1]]
+
+/* 
+   Enables support for ZTEX Experimantal Board 1.10
+   Usage: EXTENSION_EXP_1_10;
+*/
+#define[EXTENSION_EXP_1_10;][#define[EXP_1_10_ENABLED][1]]
+
+/* 
+   Enables high speed FPGA configuration for ZTEX USB-FPGA Module 1.15 and 1GbE-USB-FPGA Module 1.20
+   Usage: ENABLE_HS_FPGA_CONF(<ENDPOINT>);
+	<endpoint>	endpoint which shall be used (any bulk output can be used)
+*/
+#define[ENABLE_HS_FPGA_CONF(][);][
+#ifeq[$0][2]
+#elifeq[$0][4]
+#elifeq[$0][6]
+#elifneq[$0][8]
+#error[ENABLE_HS_FPGA_CONF: Invalid Endpoint. Valid values are: `2', `4', `6', `8'.]
+#endif
+#define[HS_FPGA_CONF_EP][$0]]
+
+/* 
+   This macro disables MAC EEPROM support, if available
+   Usage: MAC_EEPROM_DISABLE;
+*/
+#define[DISABLE_MAC_EEPROM;][#define[EEPROM_MAC_DISABLED][1]]
 
 #endif

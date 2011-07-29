@@ -1,6 +1,6 @@
 /*!
-   Java Driver API for the ZTEX Firmware Kit
-   Copyright (C) 2009-2010 ZTEX e.K.
+   Java host software API of ZTEX EZ-USB FX2 SDK
+   Copyright (C) 2009-2011 ZTEX GmbH.
    http://www.ztex.de
 
    This program is free software; you can redistribute it and/or modify
@@ -51,7 +51,7 @@
 		3-6	Number of sectors
 		7	Error code
 	VR 0x41 : read from Flash
-	VR 0x42 : write to Flash
+	VC 0x42 : write to Flash
     0.3  : Debug helper support
 	VR 0x28 : read debug data
 	    Returns:
@@ -60,6 +60,39 @@
 		2	stack size in messages
 		3       message size in bytes
 		>=4	message stack
+    0.4  : XMEGA support
+	VR 0x48 : read XMEGA status information
+	    Returns:
+	        Offs	Description
+		0	error code
+                1-2     Flash size in pages
+                3-4     EEPROM size in pages
+                5	Flash page size as power of two	(e.g. 9 means 512 bytes)
+                6	EEPROM page size as power of two
+	VC 0x49 : reset XMEGA
+	VR 0x4A,0x4B,0x4C,0x4D : read XMEGA NVM using PDI address space / relative to Flash address base / EEPROM address base / Fuse address base
+	VC 0x4B,0x4C : write exactly one Flash / EEPROM page
+	VC 0x4D : write Fuse
+
+    0.5  : High speed FPGA configuration support
+	VR 0x33 : Return Endpoint settings
+	    Returns:
+	        Offs	Description
+		0	Endpoint number
+		1	Interface number
+	VC 0x34 : Start high speed FPGA configuration
+	VC 0x35 : Finish high speed FPGA configuration
+
+    0.6  : MAC EEPROM support
+	VR 0x3B : read from MAC EEPROM
+	    Returns:
+		MAC EEPROM data
+	VC 0x3C : write to MAC EEPROM
+	VR 0x3D : MAC EEPROM state
+	    Returns:
+	        Offs	Description
+		0	0:idle, 1:busy or error
+        
 */
 package ztex;
 
@@ -154,7 +187,7 @@ import ch.ntb.usb.*;
   *               </tr>
   *               <tr>
   *                 <td bgcolor="#ffffff" valign="top">6</td>
-  *                 <td bgcolor="#ffffff" valign="top">INIT_B states (Must be 222).</td>
+  *                 <td bgcolor="#ffffff" valign="top">INIT_B states.</td>
   *               </tr>
   *             </table>
   *           </td>
@@ -256,10 +289,144 @@ import ch.ntb.usb.*;
   *       </table>
   *     </td>
   *   </tr>
+  *   <tr>
+  *     <td bgcolor="#ffffff" valign="top">0.4</td>
+  *     <td bgcolor="#ffffff" valign="top" colspan=2>
+  *       XMEGA support<p>
+  *       <table bgcolor="#404040" cellspacing=1 cellpadding=6>
+  *         <tr>
+  *           <td bgcolor="#d0d0d0" valign="bottom"><b>Vendor request (VR)<br> or command (VC)</b></td>
+  *           <td bgcolor="#d0d0d0" valign="bottom"><b>Description</b></td>
+  *         </tr>
+  *         <tr>
+  *           <td bgcolor="#ffffff" valign="top">VR 0x48</td>
+  *           <td bgcolor="#ffffff" valign="top">Read XMEGA status information. Returns:
+  *             <table bgcolor="#404040" cellspacing=1 cellpadding=4>
+  *               <tr>
+  *                 <td bgcolor="#d0d0d0" valign="bottom"><b>Bytes</b></td>
+  *                 <td bgcolor="#d0d0d0" valign="bottom"><b>Description</b></td>
+  *               </tr>
+  *               <tr>
+  *                 <td bgcolor="#ffffff" valign="top">0</td>
+  *                 <td bgcolor="#ffffff" valign="top">Error code</td>
+  *               </tr>
+  *               <tr>
+  *                 <td bgcolor="#ffffff" valign="top">1-2</td>
+  *                 <td bgcolor="#ffffff" valign="top">Flash size in pages</td>
+  *               </tr>
+  *               <tr>
+  *                 <td bgcolor="#ffffff" valign="top">3-4</td>
+  *                 <td bgcolor="#ffffff" valign="top">EEPROM sie in pages</td>
+  *               </tr>
+  *               <tr>
+  *                 <td bgcolor="#ffffff" valign="top">5</td>
+  *                 <td bgcolor="#ffffff" valign="top">Flash page size as power of two	(e.g. 9 means 512 bytes)</td>
+  *               </tr>
+  *               <tr>
+  *                 <td bgcolor="#ffffff" valign="top">6</td>
+  *                 <td bgcolor="#ffffff" valign="top">EEPROM page size as power of two</td>
+  *               </tr>
+  *             </table>
+  *           </td>
+  *         </tr>
+  *         <tr>
+  *           <td bgcolor="#ffffff" valign="top">VC 0x49</td>
+  *           <td bgcolor="#ffffff" valign="top">Reset XMEGA</td>
+  *         </tr>
+  *         <tr>
+  *           <td bgcolor="#ffffff" valign="top">VRs 0x4A, 0x4B, 0x4C, 0x4D</td>
+  *           <td bgcolor="#ffffff" valign="top">Read XMEGA NVM using PDI address space / relative to Flash address base / EEPROM address base / Fuse address base</td>
+  *         </tr>
+  *         <tr>
+  *           <td bgcolor="#ffffff" valign="top">VCs 0x4B, 0x4C</td>
+  *           <td bgcolor="#ffffff" valign="top">Write exactly one Flash / EEPROM page</td>
+  *         </tr>
+  *         <tr>
+  *           <td bgcolor="#ffffff" valign="top">VCs 0x4D</td>
+  *           <td bgcolor="#ffffff" valign="top">Write Fuse</td>
+  *         </tr>
+  *       </table>
+  *     </td>
+  *   </tr>
+  *   <tr>
+  *     <td bgcolor="#ffffff" valign="top">0.5</td>
+  *     <td bgcolor="#ffffff" valign="top" colspan=2>
+  *	  High speed FPGA configuration support<p>
+  *       <table bgcolor="#404040" cellspacing=1 cellpadding=6>
+  *         <tr>
+  *           <td bgcolor="#d0d0d0" valign="bottom"><b>Vendor request (VR)<br> or command (VC)</b></td>
+  *           <td bgcolor="#d0d0d0" valign="bottom"><b>Description</b></td>
+  *         </tr>
+  *         <tr>
+  *           <td bgcolor="#ffffff" valign="top">VR 0x33</td>
+  *           <td bgcolor="#ffffff" valign="top">Read Endpoint settings. Returns:
+  *             <table bgcolor="#404040" cellspacing=1 cellpadding=4>
+  *               <tr>
+  *                 <td bgcolor="#d0d0d0" valign="bottom"><b>Bytes</b></td>
+  *                 <td bgcolor="#d0d0d0" valign="bottom"><b>Description</b></td>
+  *               </tr>
+  *               <tr>
+  *                 <td bgcolor="#ffffff" valign="top">0</td>
+  *                 <td bgcolor="#ffffff" valign="top">Endpoint number</td>
+  *               </tr>
+  *               <tr>
+  *                 <td bgcolor="#ffffff" valign="top">1</td>
+  *                 <td bgcolor="#ffffff" valign="top">Interface number</td>
+  *               </tr>
+  *             </table>
+  *           </td>
+  *         </tr>
+  *         <tr>
+  *           <td bgcolor="#ffffff" valign="top">VR 0x34</td>
+  *           <td bgcolor="#ffffff" valign="top">Start FPGA configuration</td>
+  *         </tr>
+  *         <tr>
+  *           <td bgcolor="#ffffff" valign="top">VC 0x35</td>
+  *           <td bgcolor="#ffffff" valign="top">Finish FPGA configuration</td>
+  *         </tr>
+  *       </table>
+  *	</td>
+  *   </tr>
+  *   <tr>
+  *     <td bgcolor="#ffffff" valign="top">0.6</td>
+  *     <td bgcolor="#ffffff" valign="top" colspan=2>
+  *	  MAC EEPROM support<p>
+  *       <table bgcolor="#404040" cellspacing=1 cellpadding=6>
+  *         <tr>
+  *           <td bgcolor="#d0d0d0" valign="bottom"><b>Vendor request (VR)<br> or command (VC)</b></td>
+  *           <td bgcolor="#d0d0d0" valign="bottom"><b>Description</b></td>
+  *         </tr>
+  *         <tr>
+  *           <td bgcolor="#ffffff" valign="top">VR 0x3B</td>
+  *           <td bgcolor="#ffffff" valign="top">Read from MAC EEPROM</td>
+  *         </tr>
+  *         <tr>
+  *           <td bgcolor="#ffffff" valign="top">VC 0x3C</td>
+  *           <td bgcolor="#ffffff" valign="top">Write to MAC EEPROM</td>
+  *         </tr>
+  *         <tr>
+  *           <td bgcolor="#ffffff" valign="top">VR 0x3D</td>
+  *           <td bgcolor="#ffffff" valign="top">Get MAC EEPROM state. Returns:
+  *             <table bgcolor="#404040" cellspacing=1 cellpadding=4>
+  *               <tr>
+  *                 <td bgcolor="#d0d0d0" valign="bottom"><b>Bytes</b></td>
+  *                 <td bgcolor="#d0d0d0" valign="bottom"><b>Description</b></td>
+  *               </tr>
+  *               <tr>
+  *                 <td bgcolor="#ffffff" valign="top">0</td>
+  *                 <td bgcolor="#ffffff" valign="top">0:idle, 1:busy or error</td>
+  *               </tr>
+  *             </table>
+  *           </td>
+  *         </tr>
+  *       </table>
+  *	</td>
+  *   </tr>
   * </table>
   * @see ZtexDevice1
   * @see Ztex1
   */
+
 
 public class Ztex1v1 extends Ztex1 {
     /** * Capability index for EEPROM support. */
@@ -272,6 +439,10 @@ public class Ztex1v1 extends Ztex1 {
     public static final int CAPABILITY_DEBUG = 3;
     /** * Capability index for AVR XMEGA support. */
     public static final int CAPABILITY_XMEGA = 4;
+    /** * Capability index for AVR XMEGA support. */
+    public static final int CAPABILITY_HS_FPGA = 5;
+    /** * Capability index for AVR XMEGA support. */
+    public static final int CAPABILITY_MAC_EEPROM = 6;
 
     /** * The names of the capabilities */
     public static final String capabilityStrings[] = {
@@ -279,7 +450,9 @@ public class Ztex1v1 extends Ztex1 {
 	"FPGA configuration" ,
 	"Flash memory support",
 	"Debug helper",
-	"XMEGA support"
+	"XMEGA support", 
+	"High speed FPGA configuration",
+	"MAC EEPROM read/write" 
     };
     
     private boolean fpgaConfigured = false;
@@ -314,14 +487,35 @@ public class Ztex1v1 extends Ztex1 {
     public static final int FLASH_EC_READ_ERROR = 5;
     /** * Signals an error while attempting to write to Flash. */
     public static final int FLASH_EC_WRITE_ERROR = 6;
-    /** * Signals the the installed Flash memeory is not supported. */
+    /** * Signals the the installed Flash memory is not supported. */
     public static final int FLASH_EC_NOTSUPPORTED = 7;
     
     private int debugStackSize = -1;
     private int debugMsgSize = -1;
     private int debugLastMsg = 0;
-    /** * Is set by {@link #debugReadMessages(boolean,byte[])} and conains the number of new messages. */
+    /** * Is set by {@link #debugReadMessages(boolean,byte[])} and contains the number of new messages. */
     public int debugNewMessages = 0;
+
+    private int xmegaFlashPages = -1;
+    private int xmegaEepromPages = -1;
+    private int xmegaFlashPageSize;
+    private int xmegaEepromPageSize;
+
+    /** * Last ATxmega error code obtained by {@link #xmegaState()}. See XMEGA_EC_* for possible error codes. */
+    public int xmegaEC = 0;
+    /** * Means no error. */
+    public static final int XMEGA_EC_NO_ERROR = 0;
+    /** * Signals a PDI read error. */
+    public static final int XMEGA_EC_PDI_READ_ERROR = 1;
+    /** * Signals that an NVM timeout occurred. */
+    public static final int XMEGA_EC_NVM_TIMEOUT = 2;
+    /** * Signals that the ATxmega controller is not supported. */
+    public static final int XMEGA_EC_INVALID_DEVICE = 3;
+    /** * Signals an address error (invalid address or wrong page size). */
+    public static final int XMEGA_EC_ADDRESS_ERROR = 4;
+    /** * Signals that the NVM is busy. */
+    public static final int XMEGA_EC_NVM_BUSY = 5;
+
 
 // ******* Ztex1v1 *************************************************************
 /** 
@@ -445,8 +639,19 @@ public class Ztex1v1 extends Ztex1 {
   * @throws CapabilityException if FPGA configuration is not supported by the firmware.
   */
     public void printFpgaState () throws UsbException, InvalidFirmwareException, CapabilityException {
+
+	final String flashResultStr[] = {
+	 "Configuration successful",
+	 "FPGA already configured",
+	 "Flash error",
+	 "No bitstream found",
+	 "Configuration error"
+	};
+    
 	getFpgaState();
-	System.out.println( "size=" + fpgaBytes + ";  checksum=" + fpgaChecksum + "; INIT_B_HIST=" + fpgaInitB +" (should be 222); flash_configuration_result=" + fpgaFlashResult );
+	System.out.println( "size=" + fpgaBytes + ";  checksum=" + fpgaChecksum + "; INIT_B_HIST=" + fpgaInitB +"; flash_configuration_result=" + fpgaFlashResult + 
+	  (fpgaFlashResult>=0 && fpgaFlashResult<flashResultStr.length ? " ("+flashResultStr[fpgaFlashResult]+")" : "" ) 
+	);
     }
 
 // ******* getFpgaConfiguration ************************************************
@@ -521,10 +726,10 @@ public class Ztex1v1 extends Ztex1 {
 	}
     }
 
-// ******* configureFpga *******************************************************
+// ******* configureFpgaLS *****************************************************
 //  returns configuration time in ms
 /**
-  * Upload a Bitstream to the FPGA.
+  * Upload a Bitstream to the FPGA using low speed mode.
   * @param fwFileName The file name of the Bitstream. The file can be a regular file or a system resource (e.g. a file from the current jar archive).
   * @param force If set to true existing configurations will be overwritten. (By default an {@link AlreadyConfiguredException} is thrown).
   * @param bs 0: disable bit swapping, 1: enable bit swapping, all other values: automatic detection of bit order.
@@ -535,7 +740,7 @@ public class Ztex1v1 extends Ztex1 {
   * @throws UsbException if a communication error occurs.
   * @throws CapabilityException if FPGA configuration is not supported by the firmware.
   */
-    public long configureFpga ( String fwFileName, boolean force, int bs ) throws BitstreamReadException, UsbException, BitstreamUploadException, AlreadyConfiguredException, InvalidFirmwareException, CapabilityException {
+    public long configureFpgaLS ( String fwFileName, boolean force, int bs ) throws BitstreamReadException, UsbException, BitstreamUploadException, AlreadyConfiguredException, InvalidFirmwareException, CapabilityException {
 	final int transactionBytes = certainWorkarounds ? 256 : 2048;
 	long t0 = 0;
 
@@ -552,9 +757,16 @@ public class Ztex1v1 extends Ztex1 {
 	    int j = transactionBytes;
 	    for ( int i=0; i<buffer.length && j==transactionBytes; i++ ) {
 		buffer[i] = new byte[transactionBytes]; 
-		j = inputStream.read( buffer[i] );
-		if ( j < 0 ) 
-		    j = 0;
+		int k;
+		j = 0;	
+		do {
+		    k = inputStream.read( buffer[i], j, transactionBytes-j );
+		    if ( k < 0 ) 
+		        k = 0;
+		    j += k;
+		}
+		while ( j<transactionBytes && k>0 );
+
 		if ( j < transactionBytes && j % 64 == 0 )	// ensures size % 64 != 0
 		    j+=1;
 		size += j;
@@ -604,11 +816,9 @@ public class Ztex1v1 extends Ztex1 {
 //		System.err.println("fpgaConfigred=" + fpgaConfigured + "   fpgaBytes="+fpgaBytes + " ("+bs+")   fpgaChecksum="+fpgaChecksum + " ("+cs+")   fpgaInitB="+fpgaInitB );
 		if ( ! fpgaConfigured ) {
 		    throw new BitstreamUploadException( "FPGA configuration failed: DONE pin does not go high (size=" + fpgaBytes + " ,  " + (bs - fpgaBytes) + " bytes went lost;  checksum=" 
-			+ fpgaChecksum + " , should be " + cs + ";  INIT_B_HIST=" + fpgaInitB +", should be 222)" );
+			+ fpgaChecksum + " , should be " + cs + ";  INIT_B_HIST=" + fpgaInitB +")" );
 		}
-//		System.out.println( "FPGA configuration: size=" + fpgaBytes + " ,  " + (bs - fpgaBytes) + " bytes went lost;  checksum=" + fpgaChecksum + " , should be " + cs + ";  INIT_B_HIST=" + fpgaInitB +", should be 222" );
-//		if ( fpgaInitB != 222 )
-//		    System.err.println ( "Warning: FPGA configuration may have failed: DONE pin has gone high but INIT_B states are wrong: " + fpgaInitB +", should be 222");
+//		System.out.println( "FPGA configuration: size=" + fpgaBytes + " ,  " + (bs - fpgaBytes) + " bytes went lost;  checksum=" + fpgaChecksum + " , should be " + cs + ";  INIT_B_HIST=" + fpgaInitB );
 			
 		tries = 0;
 		t0 += new Date().getTime();
@@ -631,20 +841,6 @@ public class Ztex1v1 extends Ztex1 {
 	return t0;
     } 
 
-/**
-  * Upload a Bitstream to the FPGA.
-  * @param fwFileName The file name of the Bitstream. The file can be a regular file or a system resource (e.g. a file from the current jar archive).
-  * @param force If set to true existing configurations will be overwritten. (By default an {@link AlreadyConfiguredException} is thrown).
-  * @throws BitstreamReadException if an error occurred while attempting to read the Bitstream.
-  * @throws BitstreamUploadException if an error occurred while attempting to upload the Bitstream.
-  * @throws AlreadyConfiguredException if the FPGA is already configured.
-  * @throws InvalidFirmwareException if interface 1 is not supported.
-  * @throws UsbException if a communication error occurs.
-  * @throws CapabilityException if FPGA configuration is not supported by the firmware.
-  */
-    public long configureFpga ( String fwFileName, boolean force ) throws BitstreamReadException, UsbException, BitstreamUploadException, AlreadyConfiguredException, InvalidFirmwareException, CapabilityException {
-	return configureFpga(fwFileName, force, -1);
-    }
 
 // ******* eepromState *********************************************************
 // returns true if EEPROM is ready
@@ -677,12 +873,32 @@ public class Ztex1v1 extends Ztex1 {
   */
     public void eepromWrite ( int addr, byte[] buf, int length ) throws UsbException, InvalidFirmwareException, CapabilityException {
 	checkCapability(CAPABILITY_EEPROM);
-	vendorCommand2( 0x39, "EEPROM Write", addr, 0, buf, length );
-    	try {
-    	    Thread.sleep( 10 );
-    	}
-	catch ( InterruptedException e) {
-        } 
+	if ( (addr & 63) != 0 ) {
+	    int i = Math.min(length, 64-(addr & 63));
+	    vendorCommand2( 0x39, "EEPROM Write", addr, 0, buf, i );
+    	    try {
+    		Thread.sleep( 10 );
+	    }
+	    catch ( InterruptedException e) {
+    	    } 
+    	    addr+=i;
+    	    length-=i;
+    	    if ( length > 0 ) {
+    		byte[] buf2 = new byte[length];
+    		for (int j=0; j<length; j++ ) 
+    		    buf2[j] = buf[i+j];
+    		vendorCommand2( 0x39, "EEPROM Write", addr, 0, buf2, length );
+    	    }
+	}
+	else {
+	    vendorCommand2( 0x39, "EEPROM Write", addr, 0, buf, length );
+	}
+	
+        try {
+		Thread.sleep( 10 );
+	}
+	    catch ( InterruptedException e) {
+    	} 
     }
 
 // ******* eepromRead **********************************************************
@@ -710,35 +926,24 @@ public class Ztex1v1 extends Ztex1 {
 /**
   * Upload the firmware to the EEPROM.
   * In order to start the uploaded firmware the device must be reset.
-  * @param ihxFileName The file name of the firmware image in ihx format. The file can be a regular file or a system resource (e.g. a file from the current jar archive).
+  * @param ihxFile The firmware image.
   * @param force Skips the compatibility check if true.
   * @throws IncompatibleFirmwareException if the given firmware is not compatible to the installed one, see {@link #compatible(int,int,int,int)} (Upload can be enforced using the <tt>force</tt> parameter.)
   * @throws InvalidFirmwareException if interface 1 is not supported.
   * @throws CapabilityException if EEPROM access is not supported by the firmware.
   * @throws FirmwareUploadException if an error occurred while attempting to upload the firmware.
   */
-    public long eepromUpload ( String ihxFileName, boolean force ) throws IncompatibleFirmwareException, FirmwareUploadException, InvalidFirmwareException, CapabilityException {
+    public long eepromUpload ( ZtexIhxFile1 ihxFile, boolean force ) throws IncompatibleFirmwareException, FirmwareUploadException, InvalidFirmwareException, CapabilityException {
 	final int pagesMax = 256;
 	final int pageSize = 256;
 	int pages = 0;
 	byte[][] buffer = new byte[pagesMax][];
 
 	checkCapability(CAPABILITY_EEPROM);
-	
-// load the ihx file
-	ZtexIhxFile1 ihxFile;
-	try {
-	    ihxFile = new ZtexIhxFile1( ihxFileName );
-	}
-	catch ( IOException e ) {
-	    throw new FirmwareUploadException( e.getLocalizedMessage() );
-	}
-	catch ( IhxFileDamagedException e ) {
-	    throw new FirmwareUploadException( e.getLocalizedMessage() );
-	}
+
 //	ihxFile.dataInfo(System.out);
 //	System.out.println(ihxFile);
-
+	
 // check for compatibility
 	if ( ! force && dev().valid() ) {
 	    if ( ihxFile.interfaceVersion() != 1 )
@@ -768,10 +973,10 @@ public class Ztex1v1 extends Ztex1 {
 	while ( i < ihxFile.ihxData.length ) {
 	    if ( ihxFile.ihxData[i]>=0 && ihxFile.ihxData[i]<256 ) {			// new data block
 		int j = 1;
-		while ( i+j<ihxFile.ihxData.length && ihxFile.ihxData[i+j]>=0 && ihxFile.ihxData[i+j]<255 ) 
+		while ( i+j<ihxFile.ihxData.length && ihxFile.ihxData[i+j]>=0 && ihxFile.ihxData[i+j]<256 ) 
 		    j++;
 
-		for (int k=ptr/pageSize + 1; k < (ptr+j+4)/pageSize + 1; k++ )	// also considers 5 bytes for the last data block
+		for (int k=ptr/pageSize + 1; k < (ptr+j+9)/pageSize + 1; k++ )	// also considers 5 bytes for the last data block
 		    buffer[k] = new byte[pageSize];
 
 		buffer[(ptr+0)/pageSize][(ptr+0) % pageSize] = (byte) ((j >> 8) & 255);	
@@ -837,7 +1042,36 @@ public class Ztex1v1 extends Ztex1 {
 	
 	return new Date().getTime() - t0;
     }
-    
+
+//  returns upload time in ms
+/**
+  * Upload the firmware to the EEPROM.
+  * In order to start the uploaded firmware the device must be reset.
+  * @param ihxFileName The file name of the firmware image in ihx format. The file can be a regular file or a system resource (e.g. a file from the current jar archive).
+  * @param force Skips the compatibility check if true.
+  * @throws IncompatibleFirmwareException if the given firmware is not compatible to the installed one, see {@link #compatible(int,int,int,int)} (Upload can be enforced using the <tt>force</tt> parameter.)
+  * @throws InvalidFirmwareException if interface 1 is not supported.
+  * @throws CapabilityException if EEPROM access is not supported by the firmware.
+  * @throws FirmwareUploadException if an error occurred while attempting to upload the firmware.
+  */
+    public long eepromUpload ( String ihxFileName, boolean force ) throws IncompatibleFirmwareException, FirmwareUploadException, InvalidFirmwareException, CapabilityException {
+	checkCapability(CAPABILITY_EEPROM);
+	
+// load the ihx file
+	ZtexIhxFile1 ihxFile;
+	try {
+	    ihxFile = new ZtexIhxFile1( ihxFileName );
+	}
+	catch ( IOException e ) {
+	    throw new FirmwareUploadException( e.getLocalizedMessage() );
+	}
+	catch ( IhxFileDamagedException e ) {
+	    throw new FirmwareUploadException( e.getLocalizedMessage() );
+	}
+	
+	return eepromUpload( ihxFile, force );
+    }
+
 
 // ******* eepromDisable ********************************************************
 /**
@@ -915,7 +1149,7 @@ public class Ztex1v1 extends Ztex1 {
 // ******* flashState **********************************************************
 /**
   * Reads the the Flash memory status and information.
-  * This method also sets the variables {@link #flashEnabled}, {@link #flashSectorSize} and {@link #flashSectors}.
+  * This method also sets the variables {@link #flashEnabled()}, {@link #flashSectorSize()} and {@link #flashSectors()}.
   * @return true if Flash memory is installed.
   * @throws InvalidFirmwareException if interface 1 is not supported.
   * @throws UsbException if a communication error occurs.
@@ -972,14 +1206,45 @@ public class Ztex1v1 extends Ztex1 {
   * @throws InvalidFirmwareException if interface 1 is not supported.
   * @throws UsbException if a communication error occurs.
   * @throws CapabilityException if Flash memory access is not possible.
+  * @throws IndexOutOfBoundsException If the buffer is smaller than the Flash sector size.
   */
-    public void flashReadSector ( int sector, byte[] buf ) throws UsbException, InvalidFirmwareException, CapabilityException {
+    public void flashReadSector ( int sector, byte[] buf ) throws UsbException, InvalidFirmwareException, CapabilityException, IndexOutOfBoundsException  {
+	if ( buf.length < flashSectorSize() ) 
+	    throw new IndexOutOfBoundsException( "Buffer smaller than the Flash sector size: " + buf.length + " < " + flashSectorSize());
+
 	checkCapability(CAPABILITY_FLASH);
 	if ( ! flashEnabled() )
 	    throw new CapabilityException(this, "No Flash memory installed or");
 
 	try {
 	    vendorRequest2( 0x41, "Flash Read", sector, sector >> 16, buf, flashSectorSize );
+        }
+        catch ( UsbException e ) {
+	    throw new UsbException( dev().dev(), "Flash Read: " + flashStrError() ); 
+	}
+    }
+
+// read a integer number of sectors
+/**
+  * Reads a integer number of sectors from the Flash.
+  * @param sector The number of the first sector to be read.
+  * @param num The number of sectors to be read.
+  * @param buf A buffer for the storage of the data.
+  * @throws InvalidFirmwareException if interface 1 is not supported.
+  * @throws UsbException if a communication error occurs.
+  * @throws CapabilityException if Flash memory access is not possible.
+  * @throws IndexOutOfBoundsException If the buffer is to small.
+  */
+    public void flashReadSector ( int sector, int num, byte[] buf ) throws UsbException, InvalidFirmwareException, CapabilityException, IndexOutOfBoundsException  {
+	if ( buf.length < flashSectorSize() ) 
+	    throw new IndexOutOfBoundsException( "Buffer is to small: " + buf.length + " < " + (num*flashSectorSize()) );
+
+	checkCapability(CAPABILITY_FLASH);
+	if ( ! flashEnabled() )
+	    throw new CapabilityException(this, "No Flash memory installed or");
+
+	try {
+	    vendorRequest2( 0x41, "Flash Read", sector, sector >> 16, buf, flashSectorSize*num );
         }
         catch ( UsbException e ) {
 	    throw new UsbException( dev().dev(), "Flash Read: " + flashStrError() ); 
@@ -995,14 +1260,46 @@ public class Ztex1v1 extends Ztex1 {
   * @throws InvalidFirmwareException if interface 1 is not supported.
   * @throws UsbException if a communication error occurs.
   * @throws CapabilityException if Flash memory access is not possible.
+  * @throws IndexOutOfBoundsException If the buffer is smaller than the Flash sector size.
   */
-    public void flashWriteSector ( int sector, byte[] buf ) throws UsbException, InvalidFirmwareException, CapabilityException {
+    public void flashWriteSector ( int sector, byte[] buf ) throws UsbException, InvalidFirmwareException, CapabilityException, IndexOutOfBoundsException {
+	if ( buf.length < flashSectorSize() ) 
+	    throw new IndexOutOfBoundsException( "Buffer smaller than the Flash sector size: " + buf.length + " < " + flashSectorSize());
+
 	checkCapability(CAPABILITY_FLASH);
 	if ( ! flashEnabled() )
 	    throw new CapabilityException(this, "No Flash memory installed or");
 
 	try {
 	    vendorCommand2( 0x42, "Flash Write", sector, sector >> 16, buf, flashSectorSize );
+	}
+	catch ( UsbException e ) {
+	    throw new UsbException( dev().dev(), "Flash Write: " + flashStrError() );
+	}
+    }
+
+// ******* flashWriteSector ***************************************************
+// write integer number of sectors
+/**
+  * Writes a integer number of sectors to the Flash.
+  * @param sector The sector number to be written.
+  * @param num The number of sectors to be read.
+  * @param buf The data.
+  * @throws InvalidFirmwareException if interface 1 is not supported.
+  * @throws UsbException if a communication error occurs.
+  * @throws CapabilityException if Flash memory access is not possible.
+  * @throws IndexOutOfBoundsException If the buffer is to small.
+  */
+    public void flashWriteSector ( int sector, int num, byte[] buf ) throws UsbException, InvalidFirmwareException, CapabilityException, IndexOutOfBoundsException {
+	if ( buf.length < flashSectorSize() ) 
+	    throw new IndexOutOfBoundsException( "Buffer smaller than the Flash sector size: " + buf.length + " < " + (num*flashSectorSize()));
+
+	checkCapability(CAPABILITY_FLASH);
+	if ( ! flashEnabled() )
+	    throw new CapabilityException(this, "No Flash memory installed or");
+
+	try {
+	    vendorCommand2( 0x42, "Flash Write", sector, sector >> 16, buf, flashSectorSize*num );
 	}
 	catch ( UsbException e ) {
 	    throw new UsbException( dev().dev(), "Flash Write: " + flashStrError() );
@@ -1144,6 +1441,8 @@ public class Ztex1v1 extends Ztex1 {
   * @throws BitstreamReadException if an error occurred while attempting to read the Bitstream.
   */
     public long flashUploadBitstream ( String fwFileName, int bs ) throws BitstreamReadException, UsbException, InvalidFirmwareException, CapabilityException {
+	int secNum = 2048 / flashSectorSize;
+	final int bufferSize = secNum * flashSectorSize;
 	checkCapability(CAPABILITY_FPGA);
 	checkCapability(CAPABILITY_FLASH);
 	if ( ! flashEnabled() )
@@ -1152,15 +1451,20 @@ public class Ztex1v1 extends Ztex1 {
 	
 // read the Bitstream file	
         byte[][] buffer = new byte[32768][];
-	int i,j;
+	int i,j,k;
 	try {
 	    InputStream inputStream = JInputStream.getInputStream( fwFileName );
-	    j = flashSectorSize;
-	    for ( i=0; i<buffer.length && j==flashSectorSize; i++ ) {
-		buffer[i] = new byte[flashSectorSize]; 
-		j = inputStream.read( buffer[i] );
-		if ( j < 0 ) 
-		    j = 0;
+	    j = bufferSize;
+	    for ( i=0; i<buffer.length && j==bufferSize; i++ ) {
+		buffer[i] = new byte[bufferSize]; 
+		j = 0;	
+		do {
+		    k = inputStream.read( buffer[i], j, bufferSize-j );
+		    if ( k < 0 ) 
+		        k = 0;
+		    j += k;
+		}
+		while ( j<bufferSize && k>0 );
 	    }
 	    
 	    try {
@@ -1178,25 +1482,28 @@ public class Ztex1v1 extends Ztex1 {
 	if ( bs<0 || bs>1 )
 	    bs = detectBitstreamBitOrder(buffer[0]);
 	if ( fpgaFlashBitSwap != (bs==1) )
-	    swapBits( buffer, flashSectorSize*i );
+	    swapBits( buffer, bufferSize*i );
 
 // upload the Bitstream file	
 	byte[] sector = new byte[flashSectorSize];
 	byte[] ID = new String("ZTEXBS").getBytes(); 
 
-	flashReadSector(0,sector);			// read the boot sector (only the first 16 bytes are overwritten)
-	for (int k=0; k<6; k++)
+	flashReadSector(0,sector);				// read the boot sector (only the first 16 bytes are overwritten)
+	for (k=0; k<6; k++)
 	    sector[k]=ID[k];
 	sector[6] = 1;
 	sector[7] = 1;
-	sector[8] = (byte) (i & 255);
-	sector[9] = (byte) ((i>>8) & 255);
-	sector[10] = (byte) (j & 255);
-	sector[11] = (byte) ((j>>8) & 255);
+	k = (i-1)*secNum + (j-1)/flashSectorSize + 1;
+	sector[8] = (byte) (k & 255);
+	sector[9] = (byte) ((k>>8) & 255);
+	k = ((j-1) % flashSectorSize) + 1;
+	sector[10] = (byte) (k & 255);
+	sector[11] = (byte) ((k>>8) & 255);
 	long t0 = new Date().getTime();
-	flashWriteSector(0,sector);			// write the boot sector
-	for (int k=0; k<i; k++)
-	    flashWriteSector(k+1,buffer[k]);		// write the Bitstream sectors
+	flashWriteSector(0,sector);				// write the boot sector
+	for (k=0; k<i-1; k++)
+	    flashWriteSector( 1+k*secNum, secNum, buffer[k] );	// write the Bitstream sectors
+	flashWriteSector( 1+k*secNum, (j-1)/flashSectorSize + 1, buffer[k] );
 
 	return new Date().getTime() - t0;
     } 
@@ -1347,6 +1654,478 @@ public class Ztex1v1 extends Ztex1 {
 	return r;
     }
     
+// ******* xmegaStrError *******************************************************
+/** 
+  * Converts a given error code into a String.
+  * @param errNum The error code.
+  * @return an error message.
+  */
+    public String xmegaStrError ( int errNum ) {
+	switch ( errNum ) {
+	    case XMEGA_EC_NO_ERROR:
+		return "USB error: " + LibusbJava.usb_strerror();
+	    case XMEGA_EC_PDI_READ_ERROR:
+		return "PDI read error";
+	    case XMEGA_EC_NVM_TIMEOUT:
+		return "NVM timeout error";
+	    case XMEGA_EC_INVALID_DEVICE:
+		return "Invalid or unsupported ATxmega";
+	    case XMEGA_EC_ADDRESS_ERROR:
+		return "Address error (invalid address or wrong page size)";
+	    case XMEGA_EC_NVM_BUSY:
+		return "NVM busy";
+	}
+	return "Error " + errNum;
+    }
+
+/** 
+  * Gets the last ATxmega error from the device.
+  * @return an error message.
+  */
+    public String xmegaStrError ( ) {
+	try {
+	    return xmegaStrError( xmegaState() );
+	}
+	catch ( Exception e ) {
+	    return "Unknown error (Error receiving error code: "+e.getLocalizedMessage() +")";
+	}
+    }
+
+// ******* xmegaState **********************************************************
+/**
+  * Read ATxmega error and status information from the device.
+  * @return The last error code.
+  * @throws InvalidFirmwareException if interface 1 is not supported.
+  * @throws UsbException if a communication error occurs.
+  * @throws CapabilityException if ATxmega controllers are not supported by the firmware.
+  */
+    public int xmegaState () throws UsbException, InvalidFirmwareException, CapabilityException {
+	byte[] buf = new byte[7];
+	checkCapability(CAPABILITY_XMEGA);
+	vendorRequest2(0x48, "Xmega state", 0, 0, buf, 7);
+    	xmegaEC = buf[0] & 255;
+
+    	xmegaFlashPages = ((buf[2] & 255) << 8) | (buf[1] & 255);
+    	xmegaEepromPages = ((buf[4] & 255) << 8) | (buf[3] & 255);
+    	xmegaFlashPageSize = 1 << (buf[5] & 15);
+    	xmegaEepromPageSize = 1 << (buf[6] & 15);
+	return xmegaEC;
+    }
+
+// ******* xmegaEnabled ********************************************************
+/**
+  * Returns true if ATxmega controller is available.
+  * @return true if ATxmega controller is available.
+  * @throws InvalidFirmwareException if interface 1 is not supported.
+  * @throws UsbException if a communication error occurs.
+  * @throws CapabilityException if ATxmega controllers are not supported by the firmware.
+  */
+    public boolean xmegaEnabled () throws UsbException, InvalidFirmwareException, CapabilityException {
+	if ( xmegaFlashPages < 0 || xmegaEepromPages < 0 ) // init variables
+	    xmegaState();
+	return xmegaFlashPages > 0 && xmegaEepromPages > 0;
+    }
+
+// ******* xmegaFlashPages *****************************************************
+/**
+  * Returns the number of the ATxmega Flash pages.
+  * @return The number of the ATxmega Flash pages.
+  * @throws InvalidFirmwareException if interface 1 is not supported.
+  * @throws UsbException if a communication error occurs.
+  * @throws CapabilityException if ATxmega controllers are not supported by the firmware.
+  */
+    public int xmegaFlashPages () throws UsbException, InvalidFirmwareException, CapabilityException {
+	if ( xmegaFlashPages < 0 || xmegaEepromPages < 0 ) // init variables
+	    xmegaState();
+	return xmegaFlashPages;
+    }
+
+// ******* xmegaEepromPages ****************************************************
+/**
+  * Returns the number of the ATxmega EEPROM pages.
+  * @return The number of the ATxmega EEPROM pages.
+  * @throws InvalidFirmwareException if interface 1 is not supported.
+  * @throws UsbException if a communication error occurs.
+  * @throws CapabilityException if ATxmega controllers are not supported by the firmware.
+  */
+    public int xmegaEepromPages () throws UsbException, InvalidFirmwareException, CapabilityException {
+	if ( xmegaFlashPages < 0 || xmegaEepromPages < 0 ) // init variables
+	    xmegaState();
+	return xmegaEepromPages;
+    }
+
+// ******* xmegaFlashPageSize **************************************************
+/**
+  * Returns the size of the ATxmega Flash pages.
+  * @return The size of the ATxmega Flash pages.
+  * @throws InvalidFirmwareException if interface 1 is not supported.
+  * @throws UsbException if a communication error occurs.
+  * @throws CapabilityException if ATxmega controllers are not supported by the firmware.
+  */
+    public int xmegaFlashPageSize () throws UsbException, InvalidFirmwareException, CapabilityException {
+	if ( xmegaFlashPages < 0 || xmegaEepromPages < 0 ) // init variables
+	    xmegaState();
+	return xmegaFlashPageSize;
+    }
+
+// ******* xmegaEEpromPageSize *************************************************
+/**
+  * Returns the size of the ATXmega EEPROM pages.
+  * @return The size of the ATXmega EEPROM pages.
+  * @throws InvalidFirmwareException if interface 1 is not supported.
+  * @throws UsbException if a communication error occurs.
+  * @throws CapabilityException if ATXmega controllers are not supported by the firmware.
+  */
+    public int xmegaEepromPageSize () throws UsbException, InvalidFirmwareException, CapabilityException {
+	if ( xmegaFlashPages < 0 || xmegaEepromPages < 0 ) // init variables
+	    xmegaState();
+	return xmegaEepromPageSize;
+    }
+
+// ******* xmegaReset **********************************************************
+/**
+  * Resets the ATxmega.
+  * @throws InvalidFirmwareException if interface 1 is not supported.
+  * @throws UsbException if a communication error occurs.
+  * @throws CapabilityException if NVRAM access to ATxmega is not supported by the firmware.
+  */
+    public void xmegaReset () throws UsbException, InvalidFirmwareException, CapabilityException {
+	checkCapability(CAPABILITY_XMEGA);
+	try {
+	    vendorCommand( 0x49, "XMEGA Reset" );
+        }
+        catch ( UsbException e ) {
+	    throw new UsbException( dev().dev(), "NVM Reset: " + xmegaStrError() ); 
+	}
+    }
+
+
+// ******* xmegaNvmRead ********************************************************
+/**
+  * Reads data from the NVM of ATxmega.
+  * @param addr The source address of the NVM (PDI address space).
+  * @param buf A buffer for the storage of the data.
+  * @param length The amount of bytes to be read.
+  * @throws InvalidFirmwareException if interface 1 is not supported.
+  * @throws UsbException if a communication error occurs.
+  * @throws CapabilityException if NVRAM access to ATxmega is not supported by the firmware.
+  */
+    public void xmegaNvmRead ( int addr, byte[] buf, int length ) throws UsbException, InvalidFirmwareException, CapabilityException {
+	checkCapability(CAPABILITY_XMEGA);
+	
+	try {
+	    vendorRequest2( 0x4a, "XMEGA NVM Read", addr, addr>> 16, buf, length );
+        }
+        catch ( UsbException e ) {
+	    throw new UsbException( dev().dev(), "NVM Read: " + xmegaStrError() ); 
+	}
+	try {
+    	    Thread.sleep( 3 );
+    	}
+	catch ( InterruptedException e) {
+    	} 
+    }
+
+
+// ******* xmegaFlashRead ******************************************************
+/**
+  * Reads data from Flash memory of ATxmega.
+  * @param addr The source address relative to the Flash memory base.
+  * @param buf A buffer for the storage of the data.
+  * @param length The amount of bytes to be read.
+  * @throws InvalidFirmwareException if interface 1 is not supported.
+  * @throws UsbException If a communication error occurs.
+  * @throws CapabilityException If NVRAM access to ATxmega is not supported by the firmware.
+  */
+    public void xmegaFlashRead ( int addr, byte[] buf, int length ) throws UsbException, InvalidFirmwareException, CapabilityException {
+	checkCapability(CAPABILITY_XMEGA);
+	
+	try {
+	    vendorRequest2( 0x4b, "XMEGA Flash Read", addr, addr>> 16, buf, length );
+        }
+        catch ( UsbException e ) {
+	    throw new UsbException( dev().dev(), "XMEGA Flash Read: " + xmegaStrError() ); 
+	}
+	try {
+    	    Thread.sleep( 3 );
+    	}
+	catch ( InterruptedException e) {
+    	} 
+    }
+
+
+
+// ******* xmegaEepromRead *****************************************************
+/**
+  * Reads data from EEPROM memory of ATxmega.
+  * @param addr The source address relative to the EEPROM memory base.
+  * @param buf A buffer for the storage of the data.
+  * @param length The amount of bytes to be read.
+  * @throws InvalidFirmwareException if interface 1 is not supported.
+  * @throws UsbException If a communication error occurs.
+  * @throws CapabilityException If NVRAM access to ATxmega is not supported by the firmware.
+  */
+    public void xmegaEepromRead ( int addr, byte[] buf, int length ) throws UsbException, InvalidFirmwareException, CapabilityException {
+	checkCapability(CAPABILITY_XMEGA);
+	
+	try {
+	    vendorRequest2( 0x4c, "XMEGA EEPROM Read", addr, addr>> 16, buf, length );
+        }
+        catch ( UsbException e ) {
+	    throw new UsbException( dev().dev(), "XMEGA EEPROM Read: " + xmegaStrError() ); 
+	}
+	try {
+    	    Thread.sleep( 3 );
+    	}
+	catch ( InterruptedException e) {
+    	} 
+    }
+
+
+// ******* xmegaFuseRead *******************************************************
+/**
+  * Reads data from Fuse memory of ATxmega.
+  * @param addr The source address relative to the Fuse memory base.
+  * @param buf A buffer for the storage of the data.
+  * @param length The amount of bytes to be read.
+  * @throws InvalidFirmwareException if interface 1 is not supported.
+  * @throws UsbException If a communication error occurs.
+  * @throws CapabilityException If NVRAM access to ATxmega is not supported by the firmware.
+  */
+    public void xmegaFuseRead ( int addr, byte[] buf, int length ) throws UsbException, InvalidFirmwareException, CapabilityException {
+	checkCapability(CAPABILITY_XMEGA);
+	
+	try {
+	    vendorRequest2( 0x4d, "XMEGA Fuse Read", addr, addr>> 16, buf, length );
+        }
+        catch ( UsbException e ) {
+	    throw new UsbException( dev().dev(), "XMEGA Fuse Read: " + xmegaStrError() ); 
+	}
+	try {
+    	    Thread.sleep( 3 );
+    	}
+	catch ( InterruptedException e) {
+    	} 
+    }
+
+/**
+  * Reads data one Fuse of ATxmega.
+  * @param addr The index of th Fuse.
+  * @return The Fuse read.
+  * @throws InvalidFirmwareException if interface 1 is not supported.
+  * @throws UsbException If a communication error occurs.
+  * @throws CapabilityException If NVRAM access to ATxmega is not supported by the firmware.
+  */
+    public int xmegaFuseRead ( int addr ) throws UsbException, InvalidFirmwareException, CapabilityException {
+	byte[] buf = new byte[1];
+	checkCapability(CAPABILITY_XMEGA);
+	try {
+	    vendorRequest2( 0x4d, "XMEGA Fuse Read", addr, 0, buf, 1 );
+        }
+        catch ( UsbException e ) {
+	    throw new UsbException( dev().dev(), "XMEGA Fuse Read: " + xmegaStrError() ); 
+	}
+	try {
+    	    Thread.sleep( 3 );
+    	}
+	catch ( InterruptedException e) {
+    	} 
+    	return buf[0] & 255;
+    }
+
+
+// ******* xmegaFlashPageWrite *************************************************
+/**
+  * Writes data to Flash memory of ATxmega.
+  * @param addr The source address relative to the Flash memory base.
+  * @param buf A buffer that stores the data.
+  * @throws InvalidFirmwareException if interface 1 is not supported.
+  * @throws UsbException if a communication error occurs.
+  * @throws CapabilityException if NVRAM access to ATxmega is not supported by the firmware.
+  * @throws IndexOutOfBoundsException If the buffer is smaller than the Flash page size.
+*/
+    public void xmegaFlashPageWrite ( int addr, byte[] buf ) throws UsbException, InvalidFirmwareException, CapabilityException, IndexOutOfBoundsException {
+	checkCapability(CAPABILITY_XMEGA);
+
+	if ( buf.length < xmegaFlashPageSize() ) 
+	    throw new IndexOutOfBoundsException( "Buffer smaller than the Flash page size: " + buf.length + " < " + xmegaFlashPageSize);
+
+	try {
+	    vendorCommand2( 0x4b, "XMEGA Flash page write", addr, addr>> 16, buf, xmegaFlashPageSize );
+        }
+        catch ( UsbException e ) {
+	    throw new UsbException( dev().dev(), "XMEGA Flash page write: " + xmegaStrError() ); 
+	}
+	try {
+    	    Thread.sleep( 3 );
+    	}
+	catch ( InterruptedException e) {
+    	} 
+    }
+
+// ******* xmegaEpromPageWrite *************************************************
+/**
+  * Writes data to EEPROM memory of ATxmega.
+  * @param addr The source address relative to the EEPROM memory base.
+  * @param buf A buffer that stores the data.
+  * @throws InvalidFirmwareException if interface 1 is not supported.
+  * @throws UsbException if a communication error occurs.
+  * @throws CapabilityException if NVRAM access to ATxmega is not supported by the firmware.
+  * @throws IndexOutOfBoundsException If the buffer is smaller than the EEPROM page size.
+*/
+    public void xmegaEepromPageWrite ( int addr, byte[] buf ) throws UsbException, InvalidFirmwareException, CapabilityException, IndexOutOfBoundsException {
+	checkCapability(CAPABILITY_XMEGA);
+
+	if ( buf.length < xmegaEepromPageSize() ) 
+	    throw new IndexOutOfBoundsException( "Buffer smaller than the EEPROM page size: " + buf.length + " < " + xmegaEepromPageSize);
+
+	try {
+	    vendorCommand2( 0x4c, "XMEGA EEPROM page write", addr, addr>> 16, buf, xmegaEepromPageSize );
+        }
+        catch ( UsbException e ) {
+	    throw new UsbException( dev().dev(), "XMEGA EEPROM page write: " + xmegaStrError() ); 
+	}
+	try {
+    	    Thread.sleep( 3 );
+    	}
+	catch ( InterruptedException e) {
+    	} 
+    }
+
+// ******* xmegaFuseWrite ******************************************************
+/**
+  * Writes one Fuse of the ATxmega.
+  * @param addr The index of th Fuse.
+  * @param val The value of th Fuse.
+  * @throws InvalidFirmwareException if interface 1 is not supported.
+  * @throws UsbException if a communication error occurs.
+  * @throws CapabilityException if NVRAM access to ATxmega is not supported by the firmware.
+*/
+    public void xmegaFuseWrite ( int addr, int val ) throws UsbException, InvalidFirmwareException, CapabilityException {
+	checkCapability(CAPABILITY_XMEGA);
+
+	try {
+	    vendorCommand( 0x4d, "XMEGA Fuse write", val, addr);
+        }
+        catch ( UsbException e ) {
+	    throw new UsbException( dev().dev(), "XMEGA Fuse write: " + xmegaStrError() ); 
+	}
+	try {
+    	    Thread.sleep( 3 );
+    	}
+	catch ( InterruptedException e) {
+    	} 
+    }
+
+// ******* xmegaIhxWrite *******************************************************
+/**
+  * Uploads data to NVM
+*/
+    private long xmegaIhxWrite ( boolean toFlash, IhxFile ihxFile ) throws UsbException, InvalidFirmwareException, CapabilityException, FirmwareUploadException { 
+	final int maxTries = 3;  // maximum amount of tries
+	int pageSize = toFlash ? xmegaFlashPageSize() : xmegaEepromPageSize();
+	checkCapability(CAPABILITY_XMEGA);
+
+	long t0 = new Date().getTime();
+
+	byte buf1[] = new byte[pageSize];
+	byte buf2[] = new byte[pageSize];
+	
+	for (int i = 0; i<65536; i+=pageSize ) {
+
+	    boolean b = false;
+	    boolean c = true;
+	    for ( int j=0; (j < pageSize ) && ( i+j < 65536 ); j++ ) {
+		boolean d = (ihxFile.ihxData[i+j]>=0) && (ihxFile.ihxData[i+j]<=255);	// data vaild ?
+		b |= d;
+		c &= d;
+	    }
+	    if ( b ) {	 // page contains data ==> has to be written
+//		System.out.print("Page " + i +": " );
+
+		// read page, if firmware image contains undefined bytes
+		if ( ! c ) {
+//		    System.out.print("R");
+		    if ( toFlash ) 
+			xmegaFlashRead ( i, buf1, pageSize );
+		    else
+	                xmegaEepromRead ( i, buf1, pageSize );
+		}
+
+		// prepare the page buffer
+    		for ( int j=0; (j < pageSize ) && ( i+j < 65536 ); j++ ) {
+		    if ( (ihxFile.ihxData[i+j]>=0) && (ihxFile.ihxData[i+j]<=255) )
+			buf1[j]= (byte) ihxFile.ihxData[i+j];
+		}
+		
+		for ( int k=1; b ; k++ ) {
+		    // write the page
+//		    System.out.print("W");
+		    if ( toFlash ) 
+	    		xmegaFlashPageWrite ( i, buf1 );
+	    	    else
+	    		xmegaEepromPageWrite ( i, buf1 );
+
+		    // verify it
+//		    System.out.print("V");
+		    if ( toFlash ) 
+	    		xmegaFlashRead ( i, buf2, pageSize );
+	    	    else
+	    		xmegaEepromRead ( i, buf2, pageSize );
+	    	    b=false;
+    		    for ( int j=0; (j < pageSize) && (! b ); j++ ) {
+    			b |= buf1[j] != buf2[j];
+    		    }
+    		    if ( b ) {
+    			if ( k<maxTries ) {
+    			    System.err.println("Warning: xmegaWriteFirmware: Verification of " + ( toFlash ? "Flash" : "EEPROM" ) + " page" + i + " failed (try " + k +")" );
+    			}
+    			else {
+    			    System.err.println("Warning: xmegaWriteFirmware: Verification of " + ( toFlash ? "Flash" : "EEPROM" ) + " page " + i + " failed");
+    			}
+    		    }
+    		    b = false;
+    		    
+//		    System.out.println();
+		}
+	    }
+	}
+	
+	return new Date().getTime() - t0;
+    }
+
+
+
+// ******* xmegaWriteFirmware **************************************************
+/**
+  * Uploads firmware to the flash memory
+  * @param ihxFile The firmware / data image.
+  * @throws InvalidFirmwareException if interface 1 is not supported.
+  * @throws UsbException if a communication error occurs.
+  * @throws CapabilityException if NVRAM access to ATxmega is not supported by the firmware.
+  * @throws FirmwareUploadException if the verification fails.
+  * @return the upload time in ms.
+*/
+    public long xmegaWriteFirmware ( IhxFile ihxFile ) throws UsbException, InvalidFirmwareException, CapabilityException, FirmwareUploadException { 
+	return xmegaIhxWrite( true, ihxFile);
+    }
+
+
+// ******* xmegaWriteEeprom ****************************************************
+/**
+  * Uploads data to the EEPROM memory
+  * @param ihxFile The firmware / data image.
+  * @throws InvalidFirmwareException if interface 1 is not supported.
+  * @throws UsbException if a communication error occurs.
+  * @throws CapabilityException if NVRAM access to ATxmega is not supported by the firmware.
+  * @throws FirmwareUploadException if the verification fails.
+  * @return the upload time in ms.
+*/
+    public long xmegaWriteEeprom ( IhxFile ihxFile ) throws UsbException, InvalidFirmwareException, CapabilityException, FirmwareUploadException { 
+	return xmegaIhxWrite( false, ihxFile);
+    }
+
+
 // ******* toString ************************************************************
 /** 
   * Returns a lot of useful information about the corresponding device.
@@ -1382,5 +2161,257 @@ public class Ztex1v1 extends Ztex1 {
 		}
 	return str;
     }
+// ******* configureFpgaHS *****************************************************
+//  returns configuration time in ms
+/**
+  * Upload a Bitstream to the FPGA using high speed mode.
+  * @param fwFileName The file name of the Bitstream. The file can be a regular file or a system resource (e.g. a file from the current jar archive).
+  * @param force If set to true existing configurations will be overwritten. (By default an {@link AlreadyConfiguredException} is thrown).
+  * @param bs 0: disable bit swapping, 1: enable bit swapping, all other values: automatic detection of bit order.
+  * @throws BitstreamReadException if an error occurred while attempting to read the Bitstream.
+  * @throws BitstreamUploadException if an error occurred while attempting to upload the Bitstream.
+  * @throws AlreadyConfiguredException if the FPGA is already configured.
+  * @throws InvalidFirmwareException if interface 1 is not supported.
+  * @throws UsbException if a communication error occurs.
+  * @throws CapabilityException if FPGA configuration is not supported by the firmware.
+  */
+    public long configureFpgaHS ( String fwFileName, boolean force, int bs ) throws BitstreamReadException, UsbException, BitstreamUploadException, AlreadyConfiguredException, InvalidFirmwareException, CapabilityException {
+	final int transactionBytes = 65536;
+	long t0 = 0;
+	byte[] settings = new byte[2];
+	boolean releaseIF;
+
+	checkCapability(CAPABILITY_HS_FPGA);
+	vendorRequest2(0x33, "getHSFpgaSettings", settings, 2);
+
+	if ( !force && getFpgaConfiguration() )
+	    throw new AlreadyConfiguredException(); 
+
+	releaseIF = ! getInterfaceClaimed(settings[1] & 255);
+//	System.out.println("EP "+ settings[0] + "    IF "+settings[1]+ "   claim " + releaseIF);
+	
+// read the Bitstream file	
+        byte[][] buffer = new byte[16*1024*1024/transactionBytes][];
+	int size = 0;
+	try {
+	    InputStream inputStream = JInputStream.getInputStream( fwFileName );
+	    int j = transactionBytes;
+	    for ( int i=0; i<buffer.length && j==transactionBytes; i++ ) {
+		buffer[i] = new byte[transactionBytes]; 
+		int k;
+		j = 0;	
+		do {
+		    k = inputStream.read( buffer[i], j, transactionBytes-j );
+		    if ( k < 0 ) 
+		        k = 0;
+		    j += k;
+		}
+		while ( j<transactionBytes && k>0 );
+		size += j;
+	    }
+	    
+	    try {
+		inputStream.close();
+	    }
+	    catch ( Exception e ) {
+		System.err.println( "Warning: Error closing file " + fwFileName + ": " + e.getLocalizedMessage() );
+	    }
+	}
+	catch (IOException e) {
+	    throw new BitstreamReadException(e.getLocalizedMessage());
+	}
+
+	if ( size < 64 ) 
+	    throw new BitstreamReadException("Invalid file size: " + size );
+	
+// detect bitstream bit order and swap bits if necessary 
+	if ( bs<0 || bs>1 )
+	    bs = detectBitstreamBitOrder ( buffer[0] );
+	if ( bs == 1 )
+	    swapBits(buffer,size);
+
+
+// claim interface if required
+	if ( releaseIF ) claimInterface( settings[1] & 255 );
+
+//	System.out.println(size & 127);
+	
+// upload the Bitstream file	
+	for ( int tries=1; tries>0; tries-- ) {
+	    
+    	    vendorCommand(0x34, "initHSFPGAConfiguration" );
+
+	    try {
+		t0 = -new Date().getTime();
+		    
+	    	for ( int i=0; i<buffer.length && i*transactionBytes < size; i++ ) {
+		    int j = size-i*transactionBytes;
+		    if (j>transactionBytes) 
+			j = transactionBytes;
+			
+		    int l = LibusbJava.usb_bulk_write(handle(), settings[0] & 255, buffer[i], j, 1000);
+		    if ( l < 0 )
+			throw new UsbException("Error sending Bitstream: " + LibusbJava.usb_strerror());
+		    else if ( l != j )
+			throw new UsbException("Error sending Bitstream: Sent " + l +" of " + j + " bytes");
+		}
+
+		vendorCommand(0x35, "finishHSFPGAConfiguration" );
+		t0 += new Date().getTime();
+
+ 		getFpgaState();
+//		System.err.println("fpgaConfigred=" + fpgaConfigured +"  fpgaInitB="+fpgaInitB + "  time=" + t0);
+		if ( ! fpgaConfigured ) {
+		    throw new BitstreamUploadException( "FPGA configuration failed: DONE pin does not go high" );
+		}
+			
+		tries = 0;
+	    } 
+	    catch ( BitstreamUploadException e ) {
+		if ( tries>1 ) 
+		    System.err.println("Warning: " + e.getLocalizedMessage() +": Retrying it ...");
+		else 
+		    throw e;
+	    }
+	}
+	    
+	if ( releaseIF ) releaseInterface( settings[1] & 255 );
+
+    	try {
+    	    Thread.sleep( 200 );
+    	}
+	catch ( InterruptedException e) {
+        } 
+	
+	return t0;
+    } 
+
+// ******* configureFpga *****************************************************
+//  returns configuration time in ms
+/**
+  * Upload a Bitstream to the FPGA using high speed mode (if available) or low speed mode.
+  * @param fwFileName The file name of the Bitstream. The file can be a regular file or a system resource (e.g. a file from the current jar archive).
+  * @param force If set to true existing configurations will be overwritten. (By default an {@link AlreadyConfiguredException} is thrown).
+  * @param bs 0: disable bit swapping, 1: enable bit swapping, all other values: automatic detection of bit order.
+  * @throws BitstreamReadException if an error occurred while attempting to read the Bitstream.
+  * @throws BitstreamUploadException if an error occurred while attempting to upload the Bitstream.
+  * @throws AlreadyConfiguredException if the FPGA is already configured.
+  * @throws InvalidFirmwareException if interface 1 is not supported.
+  * @throws UsbException if a communication error occurs.
+  * @throws CapabilityException if FPGA configuration is not supported by the firmware.
+  */
+    public long configureFpga ( String fwFileName, boolean force, int bs ) throws BitstreamReadException, UsbException, BitstreamUploadException, AlreadyConfiguredException, InvalidFirmwareException, CapabilityException {
+	try {
+	    return configureFpgaHS( fwFileName, force, bs );
+	}
+	catch ( CapabilityException e ) {
+	    return configureFpgaLS( fwFileName, force, bs );
+	}
+	catch ( UsbException e ) {
+	    System.err.println("Warning: High speed FPGA configuration failed, trying low speed mode:" + e.getLocalizedMessage() +": Trying low speed mode");
+	    return configureFpgaLS( fwFileName, force, bs );
+	}
+	catch ( BitstreamUploadException e ) {
+	    System.err.println("Warning: High speed FPGA configuration failed, trying low speed mode:" + e.getLocalizedMessage() +": Trying low speed mode");
+	    return configureFpgaLS( fwFileName, force, bs );
+	}
+    }
+
+/**
+  * Upload a Bitstream to the FPGA using high speed mode (if available) or low speed mode.
+  * @param fwFileName The file name of the Bitstream. The file can be a regular file or a system resource (e.g. a file from the current jar archive).
+  * @param force If set to true existing configurations will be overwritten. (By default an {@link AlreadyConfiguredException} is thrown).
+  * @throws BitstreamReadException if an error occurred while attempting to read the Bitstream.
+  * @throws BitstreamUploadException if an error occurred while attempting to upload the Bitstream.
+  * @throws AlreadyConfiguredException if the FPGA is already configured.
+  * @throws InvalidFirmwareException if interface 1 is not supported.
+  * @throws UsbException if a communication error occurs.
+  * @throws CapabilityException if FPGA configuration is not supported by the firmware.
+  */
+    public long configureFpga ( String fwFileName, boolean force ) throws BitstreamReadException, UsbException, BitstreamUploadException, AlreadyConfiguredException, InvalidFirmwareException, CapabilityException {
+	return configureFpga(fwFileName, force, -1);
+    }
+
+// ******* macEepromWrite ******************************************************
+/**
+  * Writes data to the MAC EEPROM.
+  * @param addr The destination address of the MAC EEPROM.
+  * @param buf The data.
+  * @param length The amount of bytes to be sent.
+  * @throws InvalidFirmwareException if interface 1 is not supported.
+  * @throws UsbException if a communication error occurs.
+  * @throws CapabilityException if MAC EEPROM access is not supported by the firmware.
+  */
+    public void macEepromWrite ( int addr, byte[] buf, int length ) throws UsbException, InvalidFirmwareException, CapabilityException {
+	checkCapability(CAPABILITY_MAC_EEPROM);
+	byte[] buf2 = new byte[8];
+	int ptr = 0;
+	while (length>0 ) {
+	    int i = Math.min( 8 - (addr & 7), length );
+	    for ( int j=0; j<i; j++ ) 
+		buf2[j] = buf[ptr+j];
+	    vendorCommand2( 0x3C, "MAC EEPROM Write", addr, 0, buf2, i );
+    	    try {
+    		Thread.sleep( 10 );
+	    }
+	    catch ( InterruptedException e) {
+    	    } 
+    	    addr+=i;
+    	    length-=i;
+    	    ptr += i;
+    	}
+    }
+
+// ******* macEepromRead *******************************************************
+/**
+  * Reads data from the MAC EEPROM.
+  * @param addr The source address of the MAC EEPROM.
+  * @param buf A buffer for the storage of the data.
+  * @param length The amount of bytes to be read.
+  * @throws InvalidFirmwareException if interface 1 is not supported.
+  * @throws UsbException if a communication error occurs.
+  * @throws CapabilityException if MAC EEPROM access is not supported by the firmware.
+  */
+    public void macEepromRead ( int addr, byte[] buf, int length ) throws UsbException, InvalidFirmwareException, CapabilityException {
+	checkCapability(CAPABILITY_MAC_EEPROM);
+	vendorRequest2( 0x3B, "MAC EEPROM Read", addr, 0, buf, length );
+    	try {
+    	    Thread.sleep( 10 );
+    	}
+	catch ( InterruptedException e) {
+        } 
+    }
+
+// ******* macEepromState ******************************************************
+// returns true if MAC EEPROM is ready
+/**
+  * Reads the current MAC EEPROM status.
+  * @throws InvalidFirmwareException if interface 1 is not supported.
+  * @throws UsbException if a communication error occurs.
+  * @throws CapabilityException if MAC EEPROM access is not supported by the firmware.
+  * @return true if MAC EEPROM is ready.
+  */
+    public boolean macEepromState ( ) throws UsbException, InvalidFirmwareException, CapabilityException {
+	byte[] buf = new byte[1];
+	checkCapability(CAPABILITY_MAC_EEPROM);
+	vendorRequest2(0x3D, "MAC EEPROM State", 0, 0, buf, 1);
+	return buf[0] == 0;
+    }
+
+// ******* macRead *************************************************************
+/**
+  * Reads MAC address from MAC EEPROM.
+  * @param buf A buffer with a minimum size of 6 bytes.
+  * @throws InvalidFirmwareException if interface 1 is not supported.
+  * @throws UsbException if a communication error occurs.
+  * @throws CapabilityException if MAC EEPROM access is not supported by the firmware.
+  * @throws IndexOutOfBoundsException If the buffer is smaller than 6 bytes.
+  */
+    public void macRead ( byte[] buf ) throws UsbException, InvalidFirmwareException, CapabilityException, IndexOutOfBoundsException {
+	if ( buf.length < 6 ) 
+        throw new IndexOutOfBoundsException( "macRead: Buffer smaller than 6 Bytes" );
+    	macEepromRead(250, buf, 6);
+    }
+
 }    
 

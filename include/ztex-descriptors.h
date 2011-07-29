@@ -1,6 +1,6 @@
 /*!
-   ZTEX Firmware Kit for EZ-USB Microcontrollers
-   Copyright (C) 2009-2010 ZTEX e.K.
+   ZTEX Firmware Kit for EZ-USB FX2 Microcontrollers
+   Copyright (C) 2009-2011 ZTEX GmbH.
    http://www.ztex.de
 
    This program is free software; you can redistribute it and/or modify
@@ -26,13 +26,13 @@
 #define[ZTEX_DESCRIPTOR_OFFS][0x06c]
 #define[ZTEX_DESCRIPTOR_LEN][40]
 
-xdata at ZTEX_DESCRIPTOR_OFFS BYTE ZTEX_DESCRIPTOR;
+__xdata __at ZTEX_DESCRIPTOR_OFFS BYTE ZTEX_DESCRIPTOR;
 
 /* ZTEX descriptor version. Must be 1. */
-xdata at ZTEX_DESCRIPTOR_OFFS+1 BYTE ZTEX_DESCRIPTOR_VERSION;
+__xdata __at ZTEX_DESCRIPTOR_OFFS+1 BYTE ZTEX_DESCRIPTOR_VERSION;
 
 /* Must not be modified, ID="ZTEX" */
-xdata at ZTEX_DESCRIPTOR_OFFS+2 BYTE ZTEXID[4];  
+__xdata __at ZTEX_DESCRIPTOR_OFFS+2 BYTE ZTEXID[4];  
 
 /* 
    Product ID and firmware compatibility information. 
@@ -50,18 +50,19 @@ xdata at ZTEX_DESCRIPTOR_OFFS+2 BYTE ZTEXID[4];
    10.*.*.*		// used for ZTEX products
    10.11.*.*		// ZTEX USB-FPGA-Module 1.2
    10.12.*.*		// ZTEX USB-FPGA-Module 1.11
+   10.13.*.*		// ZTEX USB-FPGA-Module 1.15
    10.20.*.*		// ZTEX USB-Module 1.0
    10.30.*.*		// ZTEX USB-XMEGA-Module 1.0
    
    Please contact me (http://www.ztex.de --> Impressum/Kontakt) if you want to register/reserve a Product ID (range).
 */
-xdata at ZTEX_DESCRIPTOR_OFFS+6 BYTE PRODUCT_ID[4];  
+__xdata __at ZTEX_DESCRIPTOR_OFFS+6 BYTE PRODUCT_ID[4];  
 
 /* Firmware version, may be used to distinguish seveveral firmware versions */
-xdata at ZTEX_DESCRIPTOR_OFFS+10 BYTE FW_VERSION;  
+__xdata __at ZTEX_DESCRIPTOR_OFFS+10 BYTE FW_VERSION;  
 
 /* Interface version. Must be 1. */
-xdata at ZTEX_DESCRIPTOR_OFFS+11 BYTE INTERFACE_VERSION;
+__xdata __at ZTEX_DESCRIPTOR_OFFS+11 BYTE INTERFACE_VERSION;
 
 /* 
     Standard interface capabilities:
@@ -71,17 +72,17 @@ xdata at ZTEX_DESCRIPTOR_OFFS+11 BYTE INTERFACE_VERSION;
 	0.3  : Debug helper, see ztex-debug.h
 	0.4  : AVR XMEGA support, see ztex-xmega.h
 */
-xdata at ZTEX_DESCRIPTOR_OFFS+12 BYTE INTERFACE_CAPABILITIES[6];
+__xdata __at ZTEX_DESCRIPTOR_OFFS+12 BYTE INTERFACE_CAPABILITIES[6];
 
 /* Space for settings which depends on PRODUCT_ID, e.g extra capabilities */
-xdata at ZTEX_DESCRIPTOR_OFFS+18 BYTE MODULE_RESERVED[12];
+__xdata __at ZTEX_DESCRIPTOR_OFFS+18 BYTE MODULE_RESERVED[12];
 
 /* 
    Serial number string 
    default: "0000000000"
    Should only be modified by the the firmware upload software 
 */
-xdata at ZTEX_DESCRIPTOR_OFFS+30 BYTE SN_STRING[10];
+__xdata __at ZTEX_DESCRIPTOR_OFFS+30 BYTE SN_STRING[10];
 
 /* Are Vendor ID and Product ID defined? */
 #ifndef[USB_VENDOR_ID]
@@ -115,9 +116,9 @@ CONFIGURE_INTERFACE(2);
 CONFIGURE_INTERFACE(3);
 
 /* define the ZTEX descriptor */
-void abscode_identity() _naked
+void abscode_identity()// _naked
 {
-    _asm	
+    __asm	
     .area ABSCODE (ABS,CODE)
 
     .org ZTEX_DESCRIPTOR_OFFS
@@ -163,6 +164,14 @@ void abscode_identity() _naked
 #nolf
  + 16
 #endif
+#ifdef[@CAPABILITY_HS_FPGA;]
+#nolf
+ + 32
+#endif
+#ifdef[@CAPABILITY_MAC_EEPROM;]
+#nolf
+ + 64
+#endif
     .db 0
     .db 0
     .db 0
@@ -187,15 +196,15 @@ void abscode_identity() _naked
     .ascii "0000000000"
 
     .area CSEG    (CODE)
-    _endasm;
+    __endasm;
 }    
 
 /* *********************************************************************
    ***** strings *******************************************************
    ********************************************************************* */
-code char manufacturerString[] = MANUFACTURER_STRING;
-code char productString[] = PRODUCT_STRING;
-code char configurationString[] = CONFIGURATION_STRING;
+__code char manufacturerString[] = MANUFACTURER_STRING;
+__code char productString[] = PRODUCT_STRING;
+__code char configurationString[] = CONFIGURATION_STRING;
 
 
 /* *********************************************************************
@@ -308,13 +317,13 @@ code char configurationString[] = CONFIGURATION_STRING;
 #endif
 ]
 
-#define[APPEND_PADBYTE(][);][code BYTE $0_PadByte[2-(sizeof($0) & 1)] = { 0 };]
+#define[APPEND_PADBYTE(][);][__code BYTE $0_PadByte[2-(sizeof($0) & 1)] = { 0 };]
 
 #ifdef[PAD_BYTE]		// to ensure word alignment of the descriptors; PAD_BYTE is defined automatically by bmpsdcc script
-code BYTE PadByte = 0;
+__code BYTE PadByte = 0;
 #endif
 
-code BYTE DeviceDescriptor[] = 
+__code BYTE DeviceDescriptor[] = 
     {
 	18, 	// 0, Descriptor length
 	0x01,	// 1, Descriptor type
@@ -336,7 +345,7 @@ code BYTE DeviceDescriptor[] =
 	1	// 17, Number of configurations
     };
     
-code BYTE DeviceQualifierDescriptor[] =
+__code BYTE DeviceQualifierDescriptor[] =
     {
 	10, 	// 0, Descriptor length
 	0x06,	// 1, Decriptor type
@@ -350,7 +359,7 @@ code BYTE DeviceQualifierDescriptor[] =
 	0,	// 9, Reserved, must be zero
     };
 
-code BYTE HighSpeedConfigDescriptor[] = 
+__code BYTE HighSpeedConfigDescriptor[] = 
     {   
 #define[HIGH_SPEED]
 	9	// 0, Descriptor length
@@ -392,7 +401,7 @@ code BYTE HighSpeedConfigDescriptor[] =
     };
 APPEND_PADBYTE(HighSpeedConfigDescriptor);
 
-code BYTE FullSpeedConfigDescriptor[] = 
+__code BYTE FullSpeedConfigDescriptor[] = 
     {   
 	9 	// 0, Descriptor length
 	,0x02	// 1, Decriptor type
@@ -432,7 +441,7 @@ code BYTE FullSpeedConfigDescriptor[] =
     };
 APPEND_PADBYTE(FullSpeedConfigDescriptor);
 
-code BYTE EmptyStringDescriptor[] = 
+__code BYTE EmptyStringDescriptor[] = 
     {
 	sizeof(EmptyStringDescriptor),  	// Length
 	0x03,					// Descriptor type
