@@ -1,13 +1,13 @@
 What is bmp
 -----------
 
-BMP is a universal macro processor. 
-
+BMP is a universal macro processor. A detailed description can be found 
+at http://wiki.ztex.de/doku.php?id=en:software:compilation:bmp
 
 Compiling
 ---------
 
-For compilation the freepascal compiler (http://www.freepascal.org) is
+For compilation the Freepascal compiler (http://www.freepascal.org) is
 required.
 
 To build and install everything just run make, make install, ...
@@ -20,16 +20,3 @@ Hered are the main make targets:
   clean           clean everything but exe's
   distclean       clean everything
 
-
-Examples/ Tests
----------------
-
-The directory `tests' contains some examples and tests. They can be build with 
-`make test*'. (see Makefile)
-
-
-Author:
--------
-
-Stefan Ziegenbalg
-email: stefan.ziegenbalg@simg.de

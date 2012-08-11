@@ -7,11 +7,11 @@ ZTEXPREFIX=../../..
 JARTARGET=Debug.jar
 CLASSTARGETS=Debug.class
 CLASSEXTRADEPS=
-#CLASSEXTRADEPS:=$(shell echo $(ZTEXPREFIX)/java/ztex/*.java)
+#CLASSEXTRADEPS:=$(wildcard $(ZTEXPREFIX)/java/ztex/*.java)
 
 IHXTARGETS=debug.ihx
 IHXEXTRADEPS=
-#IHXEXTRADEPS:=$(shell echo $(ZTEXPREFIX)/include/*.h)
+#IHXEXTRADEPS:=$(wildcard $(ZTEXPREFIX)/include/*.h)
 EXTRAJARFILES=debug.ihx
 
 ################################

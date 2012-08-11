@@ -284,7 +284,7 @@ public class ZtexDevice1 {
     public String toString () {
 	
 	return "bus=" + dev().getBus().getDirname() + "  device=" + dev().getDevnum() + " (`" + dev().getFilename() + "')  ID=" + Integer.toHexString(usbVendorId) + ":" + Integer.toHexString(usbProductId) +"\n"  +
-	      ( manufacturerString == null ? "" : ("    Manufacturer=\""  + manufacturerString + "\"") ) +
+	      ( manufacturerString == null ? "" : ("   Manufacturer=\""  + manufacturerString + "\"") ) +
 	      ( productString == null ? "" : ("  Product=\""  + productString + "\"") ) +
 	      ( snString == null ? "" : ("    SerialNumber=\""  + snString + "\"") ) +
 	      ( valid ? "\n   productID=" + byteArrayString(productId) + "  fwVer="+(fwVersion & 255) + "  ifVer="+(interfaceVersion & 255)  : "" );

@@ -1,4 +1,4 @@
-# Copyright (C) 1999-2009 Stefan Ziegenbalg
+# Copyright (C) 1999-2011 Stefan Ziegenbalg
 #
 # main targets:
 #   all             build bmp
@@ -28,6 +28,9 @@ PCEXTRAFLAGS=-gl
 #default: $(PREFIX)/bin
 #e.g. BINDIR=/usr/bin
 
+#MANDIR  where to install mans's
+#default: $(PREFIX)/share/man/man1
+
 ################################
 # DO NOT CHANAGE THE FOLLOWING #
 ################################
@@ -46,6 +49,7 @@ UNITS=-Fusrc
 PCFLAGS:=-Scgm -O3rGp3 -FE. -Xs $(PCEXTRAFLAGS)
 INSTALLDIR=$(INSTALL) -d 
 INSTALLEXE=$(INSTALL) -m 0755
+INSTALLFILE=$(INSTALL) -m 0644
 RM=rm -f
 ECHO=echo
 
@@ -80,7 +84,11 @@ DEFS=-DWINDOWS
 endif
 
 ifndef BINDIR
-  BINDIR=$(PREFIX)/bin
+  BINDIR=$(DESTDIR)$(PREFIX)/bin
+endif
+
+ifndef MANDIR
+  MANDIR=$(DESTDIR)$(PREFIX)/share/man/man1
 endif
 
 .PHONY: all install uninstall resetconf clean distclean
@@ -96,6 +104,8 @@ bmp bmp.exe: $(SOURCES)
 install: $(TARGETS)
 	$(INSTALLDIR) $(BINDIR)
 	$(INSTALLEXE) $(TARGETS) $(BINDIR)
+	$(INSTALLDIR) $(MANDIR)
+	$(INSTALLFILE) bmp.1 $(MANDIR)
 
 install2: $(TARGETS)
 	$(INSTALLEXE) $(TARGETS) ../bin

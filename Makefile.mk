@@ -1,4 +1,4 @@
-# This Makefile defines the standard rules for building the project.
+# This Makef^ile defines the standard rules for building the project.
 #
 # The following variables are used:
 #
@@ -17,7 +17,7 @@
 #
 # CLASSEXTRADEPS
 #   Extra dependencies for Java Classes
-#   Example: CLASSEXTRADEPS:=$(shell echo $(ZTEXPREFIX)/java/ztex/*.java)
+#   Example: CLASSEXTRADEPS:=$(wildcard $(ZTEXPREFIX)/java/ztex/*.java)
 #
 # IHXTARGETS
 #   ihx files (firmware ROM files) that have to be build 
@@ -25,7 +25,7 @@
 #
 # IHXEXTRADEPS
 #   Extra Dependencies for ihx files
-#   Example: IHXEXTRADEPS:=$(shell echo $(ZTEXPREFIX)/include/*.h)
+#   Example: IHXEXTRADEPS:=$(wildcard $(ZTEXPREFIX)/include/*.h)
 #
 # EXTRAJARFILES
 #   Extra files that should be included into the jar archive
@@ -41,7 +41,8 @@
 #   Extra files that should be cleaned by target "distclean"
 
 
-.PHONY: all ihx jar clean distclean default
+.PHONY: all ihx jar clean distclean default avr avrclean avrdistclean
+.SUFFIXES: .ihx .class .jar .java .c
 
 JAVAC=javac
 SDCC=$(ZTEXPREFIX)/bin/bmpsdcc.sh
@@ -71,3 +72,12 @@ distclean: clean
 	rm -f $(JARTARGET)
 	rm -f *.ihx
 	rm -f $(EXTRADISTCLEANFILES)
+	
+avr:
+	if [ -d avr ]; then make -C avr all; fi
+
+avrclean:
+	if [ -d avr ]; then make -C avr clean; fi
+
+avrdistclean:
+	if [ -d avr ]; then make -C avr distclean; fi

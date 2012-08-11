@@ -17,7 +17,7 @@
 !*/
 
 /*
-    FPGA support for ZTEX USB FPGA Modules 1.15
+    FPGA support for ZTEX USB FPGA Modules 1.15 (not 1.15y)
 */    
 
 #ifndef[ZTEX_FPGA_H]
@@ -86,8 +86,8 @@ static void post_fpga_config () {
    ***** finish_fpga_configuration *************************************
    ********************************************************************* */
 static void finish_fpga_configuration () {
-    WORD w;
-    fpga_init_b += IOC2 ? 20 : 10;
+    BYTE w;
+    fpga_init_b += IOC2 ? 22 : 11;
 
     for ( w=0; w<64; w++ ) {
         IOA4 = 1; IOA4 = 0; 
@@ -100,7 +100,6 @@ static void finish_fpga_configuration () {
 
     OEA = 0;
     OEC &= ~bmBIT3;
-    fpga_init_b += IOC2 ? 2 : 1;
     if ( IOA1 )  {
 	IOA1 = 1;		
 	post_fpga_config();
@@ -207,6 +206,128 @@ ADD_EP0_VENDOR_REQUEST((0x33,,		// get high speed fpga configuration endpoint an
     EP0BCL = 2;
 ,,));;
 
+
+#ifeq[UFM_1_15X_DETECTION_ENABLED][1]
+/* *********************************************************************
+   ***** interrupt routine for EPn *************************************
+   ********************************************************************* */
+xdata WORD old_hsconf_intvec_h, old_hsconf_intvec_l;
+   
+static void fpga_hs_send_isr () __interrupt {
+    BYTE oOEB;
+    oOEB = OEB;
+
+    EUSB = 0;			// block all USB interrupts
+
+    fpga_bytes += (EPHS_FPGA_CONF_EPBCH<<8) | EPHS_FPGA_CONF_EPBCL;
+
+    OEB = 255;
+    __asm
+	mov	dptr,#_EPHS_FPGA_CONF_EPBCL
+	movx	a,@dptr
+  	mov	r2,a
+	anl 	a,#7
+	mov 	r3,a
+	mov	dptr,#_EPHS_FPGA_CONF_EPBCH
+	movx	a,@dptr
+	addc 	a,#0
+  	
+  	rrc 	a
+  	mov 	r1,a
+  	mov 	a,r2
+  	rrc 	a
+  	mov 	r2,a
+
+  	mov 	a,r1
+  	rrc 	a
+  	mov 	r1,a
+  	mov 	a,r2
+  	rrc 	a
+  	mov 	r2,a
+
+  	mov 	a,r1
+  	rrc 	a
+  	mov 	r1,a
+  	mov 	a,r2
+  	rrc 	a
+  	mov 	r2,a
+  	
+	mov 	_AUTOPTRL1,#(_EPHS_FPGA_CONF_EPFIFOBUF)
+	mov 	_AUTOPTRH1,#(_EPHS_FPGA_CONF_EPFIFOBUF >> 8)
+	mov 	_AUTOPTRSETUP,#0x07
+	mov	dptr,#_XAUTODAT1
+
+	mov 	a,r3
+	jz 	010011$
+010012$:
+	movx	a,@dptr			// 2, 1
+	mov	_IOB,a			// 2
+	setb	_IOA4			// 2
+	clr	_IOA4                   // 2
+	djnz	r3, 010012$		// 4
+	
+
+	mov 	a,r2
+  	jz 	010010$
+010011$:
+	movx	a,@dptr			// 2, 1
+	mov	_IOB,a			// 2
+	setb	_IOA4			// 2
+	clr	_IOA4                   // 2
+
+	movx	a,@dptr			// 2, 2
+	mov	_IOB,a			// 2
+	setb	_IOA4			// 2
+	clr	_IOA4                   // 2
+
+	movx	a,@dptr			// 2, 3
+	mov	_IOB,a			// 2
+	setb	_IOA4			// 2
+	clr	_IOA4                   // 2
+
+	movx	a,@dptr			// 2, 4
+	mov	_IOB,a			// 2
+	setb	_IOA4			// 2
+	clr	_IOA4                   // 2
+
+	movx	a,@dptr			// 2, 5
+	mov	_IOB,a			// 2
+	setb	_IOA4			// 2
+	clr	_IOA4                   // 2
+
+	movx	a,@dptr			// 2, 6
+	mov	_IOB,a			// 2
+	setb	_IOA4			// 2
+	clr	_IOA4                   // 2
+
+	movx	a,@dptr			// 2, 7
+	mov	_IOB,a			// 2
+	setb	_IOA4			// 2
+	clr	_IOA4                   // 2
+
+	movx	a,@dptr			// 2, 8
+	mov	_IOB,a			// 2
+	setb	_IOA4			// 2
+	clr	_IOA4                   // 2
+
+	djnz	r2, 010011$		// 4
+	
+010010$:
+    	__endasm; 
+    OEB = oOEB;
+
+    
+    OUTPKTEND = 0x8HS_FPGA_CONF_EP;	// skip package, (re)arm EP
+//    EPHS_FPGA_CONF_EPBCL = 0x80;	// skip package, (re)arm EP
+    SYNCDELAY;
+
+    EXIF &= ~bmBIT4;
+    EPIRQ = 1 << ((HS_FPGA_CONF_EP >> 1)+3);
+
+    EUSB = 1;
+}
+#endif
+
 /* *********************************************************************
    ***** EP0 vendor command 0x34 ***************************************
    ********************************************************************* */
@@ -215,7 +336,7 @@ const char __xdata GPIF_WAVE_DATA_HSFPGA_24MHZ[32] =
 { 
 /* LenBr */ 0x01,     0x88,     0x01,     0x01,     0x01,     0x01,     0x01,     0x07,
 /* Opcode*/ 0x02,     0x07,     0x02,     0x02,     0x02,     0x02,     0x02,     0x00,
-/* Output*/ 0x04,     0x00,     0x00,     0x00,     0x00,     0x00,     0x00,     0x04,
+/* Output*/ 0x04,     0x00,     0x00,     0x00,     0x00,     0x00,     0x00,     0x04, // CTL2 <-> 0x04
 /* LFun  */ 0x00,     0x36,     0x00,     0x00,     0x00,     0x00,     0x00,     0x3F,
 };                     
 
@@ -223,19 +344,12 @@ const char __xdata GPIF_WAVE_DATA_HSFPGA_12MHZ[32] =
 { 
 /* LenBr */ 0x02,     0x01,     0x90,     0x01,     0x01,     0x01,     0x01,     0x07,
 /* Opcode*/ 0x02,     0x02,     0x07,     0x02,     0x02,     0x02,     0x02,     0x00,
-/* Output*/ 0x04,     0x00,     0x00,     0x00,     0x00,     0x00,     0x00,     0x04,
+/* Output*/ 0x04,     0x00,     0x00,     0x00,     0x00,     0x00,     0x00,     0x04,  // CTL2 <-> 0x04
 /* LFun  */ 0x00,     0x00,     0x36,     0x00,     0x00,     0x00,     0x00,     0x3F,
 };                     
 
 
-
-ADD_EP0_VENDOR_COMMAND((0x34,,			// init fpga configuration
-    init_fpga_configuration();
-
-    EPHS_FPGA_CONF_EPCS &= ~bmBIT0;		// clear stall bit
-
-    GPIFABORT = 0xFF;				// abort pendig 
- 
+void init_cpld_fpga_configuration() {
     IFCONFIG = bmBIT7 | bmBIT6 | bmBIT5 | 2;	// Internal source, 48MHz, GPIF
 
     GPIFREADYCFG = 0; //bmBIT7 | bmBIT6 | bmBIT5;
@@ -245,7 +359,7 @@ ADD_EP0_VENDOR_COMMAND((0x34,,			// init fpga configuration
     GPIFWFSELECT = 0x4E;
     GPIFREADYSTAT = 0;
 
-    MEM_COPY1(GPIF_WAVE_DATA_HSFPGA_12MHZ,GPIF_WAVE3_DATA,32);
+    MEM_COPY1(GPIF_WAVE_DATA_HSFPGA_24MHZ,GPIF_WAVE3_DATA,32);
 
     FLOWSTATE = 0;
     FLOWLOGIC = 0x10;
@@ -287,9 +401,69 @@ ADD_EP0_VENDOR_COMMAND((0x34,,			// init fpga configuration
     OEA &= ~bmBIT4;				// disable CCLK output
     OEA |= bmBIT0;				// enable GPIF mode of CPLD
     IOA0 = 0;
+}
+
+#ifeq[UFM_1_15X_DETECTION_ENABLED][1]
+xdata WORD old_hsconf_intvec_h, old_hsconf_intvec_l;
+
+void init_epn_fpga_configuration() {
+
+    IFCONFIG = bmBIT7;
+
+    REVCTL = 0x03;				// reset fifo
+    SYNCDELAY; 
+    FIFORESET = 0x80;
+    SYNCDELAY;
+    FIFORESET = HS_FPGA_CONF_EP;
+    SYNCDELAY;
+    FIFORESET = 0x0;
+    SYNCDELAY; 
+
+    EPHS_FPGA_CONF_EPFIFOCFG = 0;		// config fifo
+    SYNCDELAY;
     
-//    OEA |= bmBIT7;
-//    IOA7 = 0;
+    OUTPKTEND = 0x8HS_FPGA_CONF_EP;	// skip package, (re)arm EP
+    SYNCDELAY;
+    OUTPKTEND = 0x8HS_FPGA_CONF_EP;	// skip package, (re)arm EP
+    SYNCDELAY;
+    OUTPKTEND = 0x8HS_FPGA_CONF_EP;	// skip package, (re)arm EP
+    SYNCDELAY;
+    OUTPKTEND = 0x8HS_FPGA_CONF_EP;	// skip package, (re)arm EP
+    SYNCDELAY; 
+
+/*    EPHS_FPGA_CONF_EPBCL = 0x80;	// skip package, (re)arm EP
+    SYNCDELAY;
+    EPHS_FPGA_CONF_EPBCL = 0x80;	// skip package, (re)arm EP
+    SYNCDELAY;
+    EPHS_FPGA_CONF_EPBCL = 0x80;	// skip package, (re)arm EP
+    SYNCDELAY;
+    EPHS_FPGA_CONF_EPBCL = 0x80;	// skip package, (re)arm EP
+    SYNCDELAY; */
+
+    old_hsconf_intvec_l = INTVEC_EPHS_FPGA_CONF_EP.addrL;
+    old_hsconf_intvec_h = INTVEC_EPHS_FPGA_CONF_EP.addrH;
+    INTVEC_EPHS_FPGA_CONF_EP.addrH=((unsigned short)(&fpga_hs_send_isr)) >> 8;
+    INTVEC_EPHS_FPGA_CONF_EP.addrL=(unsigned short)(&fpga_hs_send_isr);
+
+    EXIF &= ~bmBIT4;
+    EPIRQ = 1 << ((HS_FPGA_CONF_EP >> 1)+3);
+}
+#endif
+
+ADD_EP0_VENDOR_COMMAND((0x34,,			// init fpga configuration
+    init_fpga_configuration();
+
+    EPHS_FPGA_CONF_EPCS &= ~bmBIT0;		// clear stall bit
+
+    GPIFABORT = 0xFF;				// abort pendig 
+    
+#ifeq[UFM_1_15X_DETECTION_ENABLED][1]
+    if ( is_ufm_1_15x )
+	init_epn_fpga_configuration();
+    else
+#endif    
+	init_cpld_fpga_configuration();
+    
 ,,));;
 
 
@@ -297,14 +471,24 @@ ADD_EP0_VENDOR_COMMAND((0x34,,			// init fpga configuration
    ***** EP0 vendor command 0x35 ***************************************
    ********************************************************************* */
 ADD_EP0_VENDOR_COMMAND((0x35,,		// finish fpga configuration
-    IOA0 = 1;				// disable GPIF mode of CPLD
-    IOA4 = 1;                           // enable CCLK output
-    OEA |= bmBIT4;			
+#ifeq[UFM_1_15X_DETECTION_ENABLED][1]
+    if ( is_ufm_1_15x ) {
+	INTVEC_EPHS_FPGA_CONF_EP.addrL = old_hsconf_intvec_l;
+	INTVEC_EPHS_FPGA_CONF_EP.addrH = old_hsconf_intvec_h;
+    }
+    else 
+#endif    
+    {
+	IOA0 = 1;			    // disable GPIF mode of CPLD
+	IOA4 = 1;                           // enable CCLK output
+	OEA |= bmBIT4;			
 
-    GPIFABORT = 0xFF;
-    SYNCDELAY;
-    IFCONFIG &= 0xf0;
-    SYNCDELAY;
+	GPIFABORT = 0xFF;
+	SYNCDELAY;
+	IFCONFIG &= 0xf0;
+	SYNCDELAY;
+
+    }
     finish_fpga_configuration();
 ,,));;
 

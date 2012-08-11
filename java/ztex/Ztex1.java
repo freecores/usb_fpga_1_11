@@ -44,8 +44,10 @@ public class Ztex1 {
     private long handle;
     private ZtexDevice1 dev = null;
     private boolean oldDevices[] = new boolean[maxDevNum+1];
+    private int oldDevNum = -1;
     private String usbBusName = null;
     private boolean[] interfaceClaimed = new boolean[256];
+    private boolean configurationSet = false;
 /** * Setting to true enables certain workarounds, e.g. to deal with bad driver/OS implementations. */
     public boolean certainWorkarounds = false;
 /** * The timeout for  control messages in ms. */    
@@ -320,6 +322,7 @@ public class Ztex1 {
     public void setConfiguration ( int config) throws UsbException{
 	if ( LibusbJava.usb_set_configuration(handle(), config) < 0 )
 	    throw new UsbException("Setting configuration to " + config + " failed: " + LibusbJava.usb_strerror());
+	configurationSet = true;
     }
 
 
@@ -332,6 +335,7 @@ public class Ztex1 {
     public void trySetConfiguration ( int config) {
 	if ( LibusbJava.usb_set_configuration(handle(), config) < 0 )
 	    System.err.println("Setting configuration to " + config + " failed: " + LibusbJava.usb_strerror());
+	configurationSet = true;
     }
 
 
@@ -353,6 +357,8 @@ public class Ztex1 {
   * @throws UsbException if an error occurs while attempting to claim the interface.
   */
     public void claimInterface ( int iface) throws UsbException{
+	if ( ! configurationSet )
+	    trySetConfiguration(1);
 	if ( ( iface<0 || iface>=256 || (! interfaceClaimed[iface]) ) && ( LibusbJava.usb_claim_interface(handle(), iface) < 0 ) )
 	    throw new UsbException("Claiming interface " + iface + " failed: " + LibusbJava.usb_strerror());
 	if ( iface>=0 && iface < 256 )
@@ -376,9 +382,14 @@ public class Ztex1 {
 
 // ******* findOldDevices ******************************************************
     private synchronized void findOldDevices () throws DeviceLostException {
-	Usb_Bus bus = dev.dev().getBus();
-	usbBusName = bus.getDirname();
+	usbBusName = dev.dev().getBus().getDirname();
 
+	Usb_Bus bus = LibusbJava.usb_get_busses();
+	while ( bus != null && ! bus.getDirname().equals(usbBusName) ) 
+	    bus = bus.getNext();
+	if ( bus == null )
+		throw new DeviceLostException( "findOldDevice: Bus dissapeared" );
+	    
 	for ( int i=0; i<=maxDevNum; i++ ) 
 	    oldDevices[i] = false;
 	
@@ -391,7 +402,7 @@ public class Ztex1 {
 		oldDevices[b] = true;
 	    d = d.getNext();
 	}
-	oldDevices[dev.dev().getDevnum()] = false;
+	oldDevNum = dev.dev().getDevnum();
     }
 
 // ******* findNewDevice *******************************************************
@@ -403,6 +414,8 @@ public class Ztex1 {
 	Usb_Bus bus = LibusbJava.usb_get_busses();
 	while ( bus != null && ! bus.getDirname().equals(usbBusName) ) 
 	    bus = bus.getNext();
+	if ( bus == null )
+		throw new DeviceLostException( "findNewDevice: Bus dissapeared" );
 	
 	Usb_Device d = bus != null ? bus.getDevices() : null;
 	while ( d != null ) { 
@@ -424,14 +437,18 @@ public class Ztex1 {
     private void initNewDevice ( String errBase, boolean scanUnconfigured ) throws DeviceLostException, UsbException, InvalidFirmwareException {
 // scan the bus for up to 60 s for a new device. Boot sequence may take a while.
 	Usb_Device newDev = null;
-	for ( int i=0; i<300 && newDev==null; i++ ) {
+	int i;
+	for ( i=0; i<300 && newDev==null; i++ ) {
 	    try {
     		Thread.sleep( 200 );
 	    }
 		catch ( InterruptedException e ) {
 	    }
+	    if ( i > 10 && oldDevNum >= 0 && oldDevNum < maxDevNum ) 
+		oldDevices[oldDevNum ] = false;
 	    newDev = findNewDevice( errBase + ": " );
 	}
+	oldDevNum = -1;
 	if ( newDev == null )  
 	    throw new DeviceLostException( errBase + ": No new device found" );
 

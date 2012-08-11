@@ -25,6 +25,14 @@
 
 #define[INIT_CMDS;][]
 
+#ifneq[PRODUCT_IS][UFM-1_15]
+#define[UFM_1_15X_DETECTION_ENABLED][0]
+#endif
+
+#ifeq[UFM_1_15X_DETECTION_ENABLED][1]
+__xdata BYTE is_ufm_1_15x;
+#endif
+
 /* *********************************************************************
    ***** include the basic functions ***********************************
    ********************************************************************* */
@@ -39,6 +47,9 @@
 #ifeq[PRODUCT_IS][UFM-1_15]
 #define[MAC_EEPROM_ENABLED]
 #endif // PRODUCT_IS=UFM-1_15
+#ifeq[PRODUCT_IS][UFM-1_15Y]
+#define[MAC_EEPROM_ENABLED]
+#endif // PRODUCT_IS=UFM-1_15Y
 #endif // EEPROM_MAC_DISABLED
 
 #include[ztex-eeprom.h]
@@ -138,6 +149,8 @@
 #include[ztex-fpga3.h]
 #elifeq[PRODUCT_IS][UFM-1_15]
 #include[ztex-fpga4.h]
+#elifeq[PRODUCT_IS][UFM-1_15Y]
+#include[ztex-fpga5.h]
 #endif
 
 
@@ -191,11 +204,11 @@
    ********************************************************************* */
 void mac_eeprom_init ( ) { 
     BYTE b,c,d;
-    xdata BYTE buf[5];
+    __xdata BYTE buf[5];
     __code char hexdigits[] = "0123456789ABCDEF";    
     
     for (b=0; b<10; b++) {	// abort if SN != "0000000000"
-	if ( SN_STRING[b] != '0' )
+	if ( SN_STRING[b] != 48 )
 	    return;
     }
 
@@ -255,9 +268,10 @@ void mac_eeprom_init ( ) {
 	SYNCDELAY;
 ]
 
+
 void init_USB ()
 {
-    USBCS |= 0x08;
+    USBCS |= bmBIT3;
     
     CPUCS = bmBIT4 | bmBIT1;
     wait(2);
@@ -281,6 +295,8 @@ void init_USB ()
 #elifeq[PRODUCT_IS][UFM-1_15]
     IOA1 = 1;		
     OEA |= bmBIT1;
+#elifeq[PRODUCT_IS][UFM-1_15Y]
+    init_fpga();
 #endif
 
     INIT_CMDS;    
@@ -322,6 +338,16 @@ void init_USB ()
     EPXCFG(4);
     EPXCFG(6);
     EPXCFG(8);
+
+#ifeq[UFM_1_15X_DETECTION_ENABLED][1]
+    OEA &= ~bmBIT3;
+    if ( IOA3 ) {
+	is_ufm_1_15x = 0;
+    } else {
+	is_ufm_1_15x = 1;
+//	INTERFACE_CAPABILITIES[0] &= ~32;
+    }
+#endif    
     
 #ifeq[FLASH_ENABLED][1]
     flash_init();
@@ -339,11 +365,10 @@ void init_USB ()
     mac_eeprom_init();
 #endif
 
-
     USBCS |= bmBIT7 | bmBIT1;
     wait(10);
 //    wait(250);
-    USBCS &= ~0x08;
+    USBCS &= ~bmBIT3;
 }
 
 

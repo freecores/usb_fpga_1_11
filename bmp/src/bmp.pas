@@ -303,14 +303,14 @@ mac:=m;
 end;
 
 constructor CMacroBuf.insert(var mb:CMacroBuf);
-var tmp : CMacroBuf;
+var db : CTextBuf;
 begin
-tmp:=mb;
-inherited create(mb, macrobuf_size);
-last:=tmp.last;
-tmp.last:=self;
-mac:=tmp.mac;
-tmp.mac:=nil;
+inherited create(db, macrobuf_size);
+last:=mb.last;
+mb.last:=self;
+mac:=mb.mac;
+mb.mac:=nil;
+mb:=self;
 end;
 	    
 { ****** destroy ***************************************************** }

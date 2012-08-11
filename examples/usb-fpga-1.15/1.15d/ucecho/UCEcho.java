@@ -133,6 +133,7 @@ class UCEcho extends Ztex1v1 {
 // upload the firmware if necessary
 	    if ( force || ! ztex.valid() || ! ztex.dev().productString().equals("ucecho example for UFM 1.15")  ) {
 		System.out.println("Firmware upload time: " + ztex.uploadFirmware( "ucecho.ihx", force ) + " ms");
+		force = true;
 	    }
 	    
 // upload the bitstream if necessary

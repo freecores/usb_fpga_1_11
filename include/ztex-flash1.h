@@ -825,7 +825,7 @@ void flash_read_finish(WORD n) {
 	mmc_clocks(0);			// 256 clocks = 32 dummy bytes
 	n-=32;
     }
-    mmc_clocks(n << 3);
+    if ( n>0) mmc_clocks(n << 3);
     mmc_clocks(16);			// 16 CRC clocks 
     mmc_send_cmd(12, 0.0.0.0, 0);	// stop transmission command, errors are ignored
 //    mmc_wait_busy();			// not required here
@@ -890,7 +890,7 @@ BYTE flash_write_init(DWORD s) {
    
    Between flash_write_finish / flash_write_next and flash_write_finish_sector some code
    may be executed because flash_write_finish / flash_write_next start with
-   mmc_wauit_busy().
+   mmc_wait_busy().
 
    Returns an error code (FLASH_EC_*). 0 means no error.
 */   
@@ -900,7 +900,7 @@ BYTE flash_write_finish_sector (WORD n) {
 	mmc_clocks(0);				// 256 clocks = 32 dummy bytes
 	n-=32;
     }
-    mmc_clocks(n << 3);
+    if ( n>0) mmc_clocks(n << 3);
 
     MMC_IO |= MMC_bmDI;
     mmc_clocks(16);				// 16 CRC clocks
@@ -945,6 +945,14 @@ void flash_write_next () {
 // init the card
 void flash_init() {
     BYTE i, j, k;
+
+#ifeq[UFM_1_15X_DETECTION_ENABLED][1]
+    if ( is_ufm_1_15x ) {
+	flash_enabled = 0;
+	flash_ec = FLASH_EC_NOTSUPPORTED;
+	return;
+    }
+#endif    
 
     flash_enabled = 1;
     flash_sector_size = 512;

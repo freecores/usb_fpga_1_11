@@ -7,11 +7,11 @@ ZTEXPREFIX=../../..
 JARTARGET=UCEcho.jar
 CLASSTARGETS=UCEcho.class
 CLASSEXTRADEPS=
-#CLASSEXTRADEPS:=$(shell echo $(ZTEXPREFIX)/java/ztex/*.java)
+#CLASSEXTRADEPS:=$(wildcard $(ZTEXPREFIX)/java/ztex/*.java)
 
 IHXTARGETS=ucecho.ihx
 IHXEXTRADEPS=
-#IHXEXTRADEPS:=$(shell echo $(ZTEXPREFIX)/include/*.h)
+#IHXEXTRADEPS:=$(wildcard $(ZTEXPREFIX)/include/*.h)
 EXTRAJARFILES=ucecho.ihx
 
 ################################

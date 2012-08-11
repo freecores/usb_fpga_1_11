@@ -1,3 +1,5 @@
+#!/bin/bash
+
 export PATH=/drv_t1/mingw/w32/bin:$PATH
 triple=i686-pc-mingw32
 JAVAPREFIX=/usr/local/java

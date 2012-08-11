@@ -1,5 +1,15 @@
+#!/bin/bash
+
 if [ "$1" = ""  ]; then
     echo "Usage: $0 <C file> <bmp flags> <sdcc flags>"
+    exit 1
+fi
+
+SDCC=$(which sdcc)
+if [ -z "$SDCC" ]; then
+    echo "E: bmpsdcc: sdcc is not in PATH."
+    echo "I: sdcc is not related with ztex and ships with many Linux distributions or "
+    echo "   is available at http://sdcc.sourceforge.net/ ."
     exit 1
 fi
 
@@ -16,8 +26,11 @@ fi
 
 if [ -f "$BINDIR/peeph.def" ]; then
     PEEPH="--peep-file $BINDIR/peeph.def"
+elif [ -f "/usr/local/share/ztex/peeph.def" ]; then
+    PEEPH="$PEEPH --peep-file /usr/local/share/ztex/peeph.def"
+elif [ -f "/usr/share/ztex/peeph.def" ]; then
+    PEEPH="$PEEPH --peep-file /usr/share/ztex/peeph.def"
 fi    
-
 
 inp="$1"
 if [ ! -f "$inp" -a -f "$inp.c" ]; then 
@@ -43,7 +56,7 @@ while true; do
 	exit $ec
     fi
 
-    sdcc -mmcs51 --code-loc 0x0200 --code-size 0x3800 --xram-loc 0x3A00 --xram-size 0x600 --iram-size 256 $PEEPH $3 $base.tmp.c -o $base.ihx
+    "$SDCC" -mmcs51 --code-loc 0x0200 --code-size 0x3800 --xram-loc 0x3A00 --xram-size 0x600 --iram-size 256 $PEEPH $3 $base.tmp.c -o $base.ihx
     ec="$?"
     if [ "$ec" != 0 ]; then
 	exit $ec

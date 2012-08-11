@@ -75,7 +75,7 @@ BYTE fpga_configure_from_flash( BYTE force) {
 	return 3;
 
     // read the bitstream
-    if ( flash_read_init( 1 ) )			// prepare reading sector k
+    if ( flash_read_init( 1 ) )			// prepare reading sector 1
         return 2;
     for ( k=1; k<i; k++ ) {
 	fpga_send_bitstream_from_flash( flash_sector_size );
@@ -126,6 +126,11 @@ WORD fpga_first_free_sector() {
    ********************************************************************* */
 // this function is colled by init_USB;
 void fpga_configure_from_flash_init() {
+    if ( ! flash_enabled ) {
+        fpga_flash_result = 2;
+        return;
+    }
+
     fpga_flash_result = fpga_configure_from_flash(0);
     if ( fpga_flash_result == 1 ) {
     	post_fpga_config();

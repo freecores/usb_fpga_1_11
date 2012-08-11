@@ -27,6 +27,7 @@ EP_CONFIG(6,0,BULK,OUT,512,2);
 
 // select ZTEX USB FPGA Module 1.15 as target  (required for FPGA configuration)
 IDENTITY_UFM_1_15(10.13.0.0,0);	 
+ENABLE_UFM_1_15X_DETECTION;	 // avoids some warnings
 
 // this product string is also used for identification by the host software
 #define[PRODUCT_STRING]["intraffic example for UFM 1.15"]

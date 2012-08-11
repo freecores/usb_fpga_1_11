@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # Makefile.config -- script for automatic configuration of Makefile variables
 # Copyright (C) 2002-2003 Stefan Ziegenbalg
 

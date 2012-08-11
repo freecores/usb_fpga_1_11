@@ -85,7 +85,7 @@ static void post_fpga_config () {
    ***** finish_fpga_configuration *************************************
    ********************************************************************* */
 static void finish_fpga_configuration () {
-    WORD w;
+    BYTE w;
     fpga_init_b += IOA0 ? 20 : 10;
 
     for ( w=0; w<64; w++ ) {

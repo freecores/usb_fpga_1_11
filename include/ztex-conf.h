@@ -75,6 +75,14 @@ SET_VPID(0x221a,0x100);
 */
 #define[POST_FPGA_CONFIG][]
 
+/* 
+   On multi FPGA boards this macro is called betwen deselection and
+   selection of a FPGA. This can be used to store / resore I/O contents.
+   To append something to this macro use the following definition:
+#define[PRE_FPGA_SELECT][PRE_FPGA_SELECT
+...]
+*/
+#define[PRE_FPGA_SELECT][]
 
 
 /* 
@@ -387,7 +395,21 @@ EP_POLL(8,1);
 #define[PRODUCT_ID_3][$3]
 #define[FWVER][$4]
 #define[PRODUCT_IS][UFM-1_15]
-#define[PRODUCT_STRING]["USB-FPGA Module 1.15"]]
+#define[PRODUCT_STRING]["USB-FPGA Module 1.15"]
+#define[NUMBER_OF_FPGAS][1]]
+
+/* 
+   Identify as ZTEX USB FPGA Module 1.15y
+   Usage: IDENTITY_UFM_1_10(<PRODUCT_ID_0>.<PRODUCT_ID_1><PRODUCT_ID_2>.<PRODUCT_ID_3>,<FW_VERSION>);
+*/
+#define[IDENTITY_UFM_1_15Y(][.$1.$2.$3,$4);][#define[PRODUCT_ID_0][$0]
+#define[PRODUCT_ID_1][$1]
+#define[PRODUCT_ID_2][$2]
+#define[PRODUCT_ID_3][$3]
+#define[FWVER][$4]
+#define[PRODUCT_IS][UFM-1_15Y]
+#define[PRODUCT_STRING]["USB-FPGA Module 1.15y"]
+#define[NUMBER_OF_FPGAS][4]]
 
 
 /* 
@@ -427,17 +449,10 @@ EP_POLL(8,1);
 */
 #define[PRODUCT_STRING]["USB-FPGA Module"]
 
-
-/* 
-   This macro defines the Configuration string. Limited to 31 characters. 
-*/
-#define[CONFIGURATION_STRING]["(unknown)"]
-
-
 /* 
    This macro enables defines the Configuration string. Limited to 31 characters. 
 */
-#define[CONFIGURATION_STRING]["(unknown)"]
+#define[CONFIGURATION_STRING]["default"]
 
 
 /* 
@@ -483,7 +498,7 @@ EP_POLL(8,1);
 #define[EXTENSION_EXP_1_10;][#define[EXP_1_10_ENABLED][1]]
 
 /* 
-   Enables high speed FPGA configuration for ZTEX USB-FPGA Module 1.15 and 1GbE-USB-FPGA Module 1.20
+   Enables high speed FPGA configuration for ZTEX USB-FPGA Module 1.15 and 1.15y
    Usage: ENABLE_HS_FPGA_CONF(<ENDPOINT>);
 	<endpoint>	endpoint which shall be used (any bulk output can be used)
 */
@@ -501,5 +516,11 @@ EP_POLL(8,1);
    Usage: MAC_EEPROM_DISABLE;
 */
 #define[DISABLE_MAC_EEPROM;][#define[EEPROM_MAC_DISABLED][1]]
+
+/* 
+   Enables detection of USB-FPGA Modules 1.15x. This avoids some warnings and makes the variable is_ufm_1_15x available.
+   Usage: ENABLE_UFM_1_15X_DETECTION;
+*/
+#define[ENABLE_UFM_1_15X_DETECTION;][#define[UFM_1_15X_DETECTION_ENABLED][1]]
 
 #endif

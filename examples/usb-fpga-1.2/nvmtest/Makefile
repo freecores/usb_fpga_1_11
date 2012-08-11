@@ -7,11 +7,11 @@ ZTEXPREFIX=../../..
 JARTARGET=NVMTest.jar
 CLASSTARGETS=NVMTest.class
 CLASSEXTRADEPS=
-CLASSEXTRADEPS:=$(shell echo $(ZTEXPREFIX)/java/ztex/*.java)
+#CLASSEXTRADEPS:=$(wildcard $(ZTEXPREFIX)/java/ztex/*.java)
 
 IHXTARGETS=nvmtest.ihx
 IHXEXTRADEPS=
-IHXEXTRADEPS:=$(shell echo $(ZTEXPREFIX)/include/*.h)
+#IHXEXTRADEPS:=$(wildcard $(ZTEXPREFIX)/include/*.h)
 EXTRAJARFILES=nvmtest.ihx
 
 ################################

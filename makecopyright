@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # makecopyright - put a copyright info into source files
 # Copyright (C) 2009-2011 ZTEX GmbH., http://www.ztex.de

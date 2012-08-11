@@ -66,6 +66,7 @@ class FWLoader {
 			"    -bs 0|1|A        Bit swapping for bitstreams: 0: disable, 1: enable, A: automatic detection\n"+
 			"    -rf              Reset FPGA\n"+
 			"    -uf <bitstream>  Upload bitstream to FPGA\n"+
+			"    -sf <number>     Select FPGA (default: 0)\n"+
 			"    -re              Reset EEPROM Firmware\n"+
 			"    -ue <ihx file>   Upload Firmware to EEPROM\n"+
 			"    -rm              Reset FLASH bitstream\n"+
@@ -163,7 +164,7 @@ class FWLoader {
 		}
 		else if ( args[i].equals("-i") || args[i].equals("-ii") || args[i].equals("-if") || args[i].equals("-ru") || args[i].equals("-rf") || args[i].equals("-re") || args[i].equals("-rm") ) {
 		}
-		else if ( args[i].equals("-uu") || args[i].equals("-uf") || args[i].equals("-ue") || args[i].equals("-um") || args[i].equals("-bs") || args[i].equals("-uxf")  || args[i].equals("-uxe") || args[i].equals("-rxf") || args[i].equals("-ss")) {
+		else if ( args[i].equals("-uu") || args[i].equals("-uf") || args[i].equals("-sf") || args[i].equals("-ue") || args[i].equals("-um") || args[i].equals("-bs") || args[i].equals("-uxf")  || args[i].equals("-uxe") || args[i].equals("-rxf") || args[i].equals("-ss")) {
 		    i+=1;
 		}
 		else if ( args[i].equals("-wxf")  ) {
@@ -254,6 +255,23 @@ class FWLoader {
 			System.exit(1);
 		    }
 		    System.out.println("FPGA configuration time: " + ztex.configureFpga( args[i], forceUpload, bs ) + " ms");
+		} 
+		else if ( args[i].equals("-sf") ) {
+		    i++;
+		    int fn=-1;
+		    try {
+			if (i>=args.length) 
+			    throw new Exception();
+    			fn = Integer.parseInt( args[i] );
+		    } 
+		    catch (Exception e) {
+			System.err.println("Error: Number expected after -sf");
+			System.err.println(helpMsg);
+			System.exit(1);
+		    }
+    	    	    if ( fn >= 0 ) {
+    	    		ztex.selectFpga(fn);
+		    }
 		} 
 		else if ( args[i].equals("-re") ) {
 		    ztex.eepromDisable();

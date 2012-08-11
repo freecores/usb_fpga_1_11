@@ -187,6 +187,7 @@ class MemTest extends Ztex1v1 {
 // upload the firmware if necessary
 	    if ( force || ! ztex.valid() || ! ztex.dev().productString().equals("memtest example for UFM 1.11") ) {
 		System.out.println("Firmware upload time: " + ztex.uploadFirmware( "memtest.ihx", force ) + " ms");
+		force = true;
 	    }
 
 	    ztex.vendorCommand (0x60, "Set test pattern", (genMode ? 1 : 0), 0);

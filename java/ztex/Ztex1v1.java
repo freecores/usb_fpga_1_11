@@ -39,6 +39,9 @@
 	        1	checksum
 		2-5	transferred bytes
 		6  	INIT_B state
+		7	Flash configuration result
+		8	Flash bitstream bit order (1=swapped)
+
 	VC 0x31 : reset FPGA
 	VC 0x32 : send FPGA configuration data (Bitstream)
 
@@ -93,6 +96,20 @@
 	        Offs	Description
 		0	0:idle, 1:busy or error
         
+    0.7  : Multi-FPGA support
+	VR 0x50 : Return multi-FPGA information
+	    Returns:
+	        Offs	Description
+	        0	Number of FPGA's - 1
+	        1       Selected FPGA - 1 
+	        2       Parallel configuration support (0:no, 1:yes)
+	VC 0x51 : set CS
+	    Parameters:
+	        index: Select command
+	    	    0 : select single FPGA
+	    	    1 : select all FPGA's for configuration
+	        value: FPGA to select - 1
+
 */
 package ztex;
 
@@ -188,6 +205,14 @@ import ch.ntb.usb.*;
   *               <tr>
   *                 <td bgcolor="#ffffff" valign="top">6</td>
   *                 <td bgcolor="#ffffff" valign="top">INIT_B states.</td>
+  *               </tr>
+  *               <tr>
+  *                 <td bgcolor="#ffffff" valign="top">7</td>
+  *                 <td bgcolor="#ffffff" valign="top">Flash configuration result.</td>
+  *               </tr>
+  *               <tr>
+  *                 <td bgcolor="#ffffff" valign="top">8</td>
+  *                 <td bgcolor="#ffffff" valign="top">Flash Bitstreambit order (1=swapped).</td>
   *               </tr>
   *             </table>
   *           </td>
@@ -422,6 +447,60 @@ import ch.ntb.usb.*;
   *       </table>
   *	</td>
   *   </tr>
+  *   <tr>
+  *     <td bgcolor="#ffffff" valign="top">0.7</td>
+  *     <td bgcolor="#ffffff" valign="top" colspan=2>
+  *	  Multi-FPGA support<p>
+  *       <table bgcolor="#404040" cellspacing=1 cellpadding=6>
+  *         <tr>
+  *           <td bgcolor="#d0d0d0" valign="bottom"><b>Vendor request (VR)<br> or command (VC)</b></td>
+  *           <td bgcolor="#d0d0d0" valign="bottom"><b>Description</b></td>
+  *         </tr>
+  *         <tr>
+  *           <td bgcolor="#ffffff" valign="top">VR 0x50</td>
+  *           <td bgcolor="#ffffff" valign="top">Return multi-FPGA information:
+  *             <table bgcolor="#404040" cellspacing=1 cellpadding=4>
+  *               <tr>
+  *                 <td bgcolor="#d0d0d0" valign="bottom"><b>Bytes</b></td>
+  *                 <td bgcolor="#d0d0d0" valign="bottom"><b>Description</b></td>
+  *               </tr>
+  *               <tr>
+  *                 <td bgcolor="#ffffff" valign="top">0</td>
+  *                 <td bgcolor="#ffffff" valign="top">Number of FPGA's - 1</td>
+  *               </tr>
+  *               <tr>
+  *                 <td bgcolor="#ffffff" valign="top">1</td>
+  *                 <td bgcolor="#ffffff" valign="top">Selected FPGA - 1</td>
+  *               </tr>
+  *               <tr>
+  *		    <td bgcolor="#ffffff" valign="top">2</td>
+  *		    <td bgcolor="#ffffff" valign="top">Parallel configuration support (0:no, 1:yes)</td>
+  *               </tr>
+  *             </table>
+  *           </td>
+  *         </tr>
+  *         <tr>
+  *           <td bgcolor="#ffffff" valign="top">VC 0x51</td>
+  *           <td bgcolor="#ffffff" valign="top">Parameters:
+  *             <table bgcolor="#404040" cellspacing=1 cellpadding=4>
+  *               <tr>
+  *                 <td bgcolor="#d0d0d0" valign="bottom"><b>Parameter</b></td>
+  *                 <td bgcolor="#d0d0d0" valign="bottom"><b>Description</b></td>
+  *               </tr>
+  *               <tr>
+  *                 <td bgcolor="#ffffff" valign="top">index</td>
+  *                 <td bgcolor="#ffffff" valign="top">Select command<br> 0: Select single FPGA <br> 1: Select all FPGA's for configuration</td>
+  *               </tr>
+  *               <tr>
+  *                 <td bgcolor="#ffffff" valign="top">value</td>
+  *                 <td bgcolor="#ffffff" valign="top">FPGA to select - 1</td>
+  *               </tr>
+  *             </table>
+  *           </td>
+  *         </tr>
+  *       </table>
+  *	</td>
+  *   </tr>
   * </table>
   * @see ZtexDevice1
   * @see Ztex1
@@ -443,6 +522,8 @@ public class Ztex1v1 extends Ztex1 {
     public static final int CAPABILITY_HS_FPGA = 5;
     /** * Capability index for AVR XMEGA support. */
     public static final int CAPABILITY_MAC_EEPROM = 6;
+    /** * Capability index for multi FPGA support */
+    public static final int CAPABILITY_MULTI_FPGA = 7;
 
     /** * The names of the capabilities */
     public static final String capabilityStrings[] = {
@@ -452,9 +533,13 @@ public class Ztex1v1 extends Ztex1 {
 	"Debug helper",
 	"XMEGA support", 
 	"High speed FPGA configuration",
-	"MAC EEPROM read/write" 
+	"MAC EEPROM read/write",
+	"Multi FPGA Support" 
     };
     
+    /** * Enables extra FPGA configuration checks. Certain Bistream settings may cause false warnings.  */
+    public boolean enableExtraFpgaConfigurationChecks = false;
+
     private boolean fpgaConfigured = false;
     private int fpgaChecksum = 0;
     private int fpgaBytes = 0;
@@ -515,8 +600,11 @@ public class Ztex1v1 extends Ztex1 {
     public static final int XMEGA_EC_ADDRESS_ERROR = 4;
     /** * Signals that the NVM is busy. */
     public static final int XMEGA_EC_NVM_BUSY = 5;
-
-
+    
+    private int numberOfFpgas = -1;
+    private int selectedFpga = -1;
+    private boolean parallelConfigSupport = false;
+    
 // ******* Ztex1v1 *************************************************************
 /** 
   * Constructs an instance from a given device.
@@ -815,10 +903,16 @@ public class Ztex1v1 extends Ztex1 {
  		getFpgaState();
 //		System.err.println("fpgaConfigred=" + fpgaConfigured + "   fpgaBytes="+fpgaBytes + " ("+bs+")   fpgaChecksum="+fpgaChecksum + " ("+cs+")   fpgaInitB="+fpgaInitB );
 		if ( ! fpgaConfigured ) {
-		    throw new BitstreamUploadException( "FPGA configuration failed: DONE pin does not go high (size=" + fpgaBytes + " ,  " + (bs - fpgaBytes) + " bytes went lost;  checksum=" 
+		    throw new BitstreamUploadException( "FPGA configuration failed: DONE pin does not go high (size=" + fpgaBytes + " ,  " + (bs - fpgaBytes) + " bytes got lost;  checksum=" 
 			+ fpgaChecksum + " , should be " + cs + ";  INIT_B_HIST=" + fpgaInitB +")" );
 		}
-//		System.out.println( "FPGA configuration: size=" + fpgaBytes + " ,  " + (bs - fpgaBytes) + " bytes went lost;  checksum=" + fpgaChecksum + " , should be " + cs + ";  INIT_B_HIST=" + fpgaInitB );
+		if ( enableExtraFpgaConfigurationChecks ) {
+	    	    if ( fpgaBytes!=0 && fpgaBytes!=bs )
+			System.err.println("Warning: Possible FPGA configuration data loss: " + (bs - fpgaBytes) + " bytes got lost");
+		    if ( fpgaInitB!=222 )
+			System.err.println("Warning: Possible Bitstream CRC error: INIT_B_HIST=" + fpgaInitB );
+		}
+//		System.out.println( "FPGA configuration: size=" + fpgaBytes + " ,  " + (bs - fpgaBytes) + " bytes got lost;  checksum=" + fpgaChecksum + " , should be " + cs + ";  INIT_B_HIST=" + fpgaInitB );
 			
 		tries = 0;
 		t0 += new Date().getTime();
@@ -833,7 +927,7 @@ public class Ztex1v1 extends Ztex1 {
 	}
 
     	try {
-    	    Thread.sleep( 200 );
+    	    Thread.sleep( 100 );
     	}
 	catch ( InterruptedException e) {
         } 
@@ -1090,7 +1184,7 @@ public class Ztex1v1 extends Ztex1 {
 
     		eepromRead(0, buf, 1);
 		if ( buf[0] != 0 )
-		    throw new FirmwareUploadException("Error disabeling EEPROM firmware: Verification failed");
+		    throw new FirmwareUploadException("Error disabling EEPROM firmware: Verification failed");
 		tries = 0;
 
     	    }
@@ -2176,7 +2270,7 @@ public class Ztex1v1 extends Ztex1 {
   * @throws CapabilityException if FPGA configuration is not supported by the firmware.
   */
     public long configureFpgaHS ( String fwFileName, boolean force, int bs ) throws BitstreamReadException, UsbException, BitstreamUploadException, AlreadyConfiguredException, InvalidFirmwareException, CapabilityException {
-	final int transactionBytes = 65536;
+	final int transactionBytes = 16384;
 	long t0 = 0;
 	byte[] settings = new byte[2];
 	boolean releaseIF;
@@ -2230,6 +2324,12 @@ public class Ztex1v1 extends Ztex1 {
 	if ( bs == 1 )
 	    swapBits(buffer,size);
 
+// remove NOP's from the end
+/*	System.out.println(size);
+	while ( size-2>=0 && buffer[(size-2) / transactionBytes][(size-2) % transactionBytes] == 4 && buffer[(size-1) / transactionBytes][(size-1) % transactionBytes]==0 )
+	    size-=2;
+	System.out.println(size);
+*/	
 
 // claim interface if required
 	if ( releaseIF ) claimInterface( settings[1] & 255 );
@@ -2237,7 +2337,7 @@ public class Ztex1v1 extends Ztex1 {
 //	System.out.println(size & 127);
 	
 // upload the Bitstream file	
-	for ( int tries=1; tries>0; tries-- ) {
+	for ( int tries=3; tries>0; tries-- ) {
 	    
     	    vendorCommand(0x34, "initHSFPGAConfiguration" );
 
@@ -2248,37 +2348,52 @@ public class Ztex1v1 extends Ztex1 {
 		    int j = size-i*transactionBytes;
 		    if (j>transactionBytes) 
 			j = transactionBytes;
-			
-		    int l = LibusbJava.usb_bulk_write(handle(), settings[0] & 255, buffer[i], j, 1000);
-		    if ( l < 0 )
-			throw new UsbException("Error sending Bitstream: " + LibusbJava.usb_strerror());
-		    else if ( l != j )
-			throw new UsbException("Error sending Bitstream: Sent " + l +" of " + j + " bytes");
+		
+		    if ( j>0 ) {
+			int l = LibusbJava.usb_bulk_write(handle(), settings[0] & 255, buffer[i], j, 1000);
+			if ( l < 0 )
+			    throw new UsbException("Error sending Bitstream: " + l + ": " + LibusbJava.usb_strerror());
+			else if ( l != j )
+			    throw new UsbException("Error sending Bitstream: Sent " + l +" of " + j + " bytes");
+		    }
 		}
+
+		try {
+    		    Thread.sleep( (size % transactionBytes) / 1000 + 10 );
+    		}
+		catch ( InterruptedException e) {
+    		} 
 
 		vendorCommand(0x35, "finishHSFPGAConfiguration" );
 		t0 += new Date().getTime();
 
  		getFpgaState();
-//		System.err.println("fpgaConfigred=" + fpgaConfigured +"  fpgaInitB="+fpgaInitB + "  time=" + t0);
+//		System.err.println("fpgaConfigred=" + fpgaConfigured + "   fpgaBytes="+fpgaBytes + " ("+size+")   fpgaInitB="+fpgaInitB + "  time=" + t0);
 		if ( ! fpgaConfigured ) {
-		    throw new BitstreamUploadException( "FPGA configuration failed: DONE pin does not go high" );
+		    throw new BitstreamUploadException( "FPGA configuration failed: DONE pin does not go high, possible USB transfer errors (INIT_B_HIST=" + fpgaInitB + (fpgaBytes==0 ? "" : "; " + (size - fpgaBytes) + " bytes got lost") + ")" );
+		}
+
+		if ( enableExtraFpgaConfigurationChecks ) {
+	    	    if ( fpgaBytes!=0 && fpgaBytes!=size )
+			System.err.println("Warning: Possible FPGA configuration data loss: " + (size - fpgaBytes) + " bytes got lost");
+		    if ( fpgaInitB!=222 )
+			System.err.println("Warning: Possible Bitstream CRC error: INIT_B_HIST=" + fpgaInitB );
 		}
 			
 		tries = 0;
 	    } 
 	    catch ( BitstreamUploadException e ) {
-		if ( tries>1 ) 
-		    System.err.println("Warning: " + e.getLocalizedMessage() +": Retrying it ...");
-		else 
+		if (tries == 1)
 		    throw e;
+		else if ( tries<3 || enableExtraFpgaConfigurationChecks )  
+		    System.err.println("Warning: " + e.getLocalizedMessage() +": Retrying it ...");
 	    }
 	}
 	    
 	if ( releaseIF ) releaseInterface( settings[1] & 255 );
 
     	try {
-    	    Thread.sleep( 200 );
+    	    Thread.sleep( 25 );
     	}
 	catch ( InterruptedException e) {
         } 
@@ -2409,8 +2524,59 @@ public class Ztex1v1 extends Ztex1 {
   */
     public void macRead ( byte[] buf ) throws UsbException, InvalidFirmwareException, CapabilityException, IndexOutOfBoundsException {
 	if ( buf.length < 6 ) 
-        throw new IndexOutOfBoundsException( "macRead: Buffer smaller than 6 Bytes" );
+    	    throw new IndexOutOfBoundsException( "macRead: Buffer smaller than 6 Bytes" );
     	macEepromRead(250, buf, 6);
+    }
+
+// ******* numberOfFpgas *******************************************************
+/**
+  * Returns the number of FPGA's
+  * @throws InvalidFirmwareException if interface 1 is not supported.
+  * @throws UsbException if a communication error occurs.
+  * @return number of FPGA's
+  */
+    public int numberOfFpgas ( ) throws UsbException, InvalidFirmwareException {
+	if ( numberOfFpgas < 0 ) {
+	    try {
+		byte[] buffer = new byte[3];
+		checkCapability(CAPABILITY_MULTI_FPGA);
+		vendorRequest2(0x50, "getMultiFpgaInfo", buffer, 3);
+		numberOfFpgas = (buffer[0] & 255)+1;
+		selectedFpga = buffer[1] & 255;
+		parallelConfigSupport = buffer[2]==1;
+	    }
+	    catch ( CapabilityException e ) {
+		numberOfFpgas = 1;
+		selectedFpga = 0;
+		parallelConfigSupport = false;
+	    }
+	}
+	return numberOfFpgas;
+    }
+
+// ******* selectFpga **********************************************************
+/**
+  * Select a FPGA
+  * @param num FPGA to select. Valid values are 0 to {@link #numberOfFpgas()}-1
+  * @throws InvalidFirmwareException if interface 1 is not supported.
+  * @throws UsbException if a communication error occurs.
+  * @throws IndexOutOfBoundsException If FPGA number is not in range.
+  */
+    public void selectFpga ( int num ) throws UsbException, InvalidFirmwareException, IndexOutOfBoundsException {
+	numberOfFpgas();
+	if ( num<0 || num>=numberOfFpgas )
+    	    throw new IndexOutOfBoundsException( "selectFPGA: Invalid FPGA number" );
+	
+	if ( numberOfFpgas != 1 ) {
+	    try {
+		checkCapability(CAPABILITY_MULTI_FPGA);
+		vendorCommand( 0x51, "selectFPGA", num, 0);
+	    }
+	    catch ( CapabilityException e ) {
+		// should'nt occur
+	    }
+	}
+	selectedFpga = num;
     }
 
 }    

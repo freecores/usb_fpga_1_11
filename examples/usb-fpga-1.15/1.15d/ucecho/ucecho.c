@@ -25,6 +25,7 @@ EP_CONFIG(4,0,BULK,OUT,512,2);
 
 // select ZTEX USB FPGA Module 1.15 as target  (required for FPGA configuration)
 IDENTITY_UFM_1_15(10.13.0.0,0);	 
+ENABLE_UFM_1_15X_DETECTION;	 // avoids some warnings
 
 // this product string is also used for identification by the host software
 #define[PRODUCT_STRING]["ucecho example for UFM 1.15"]
@@ -32,7 +33,7 @@ IDENTITY_UFM_1_15(10.13.0.0,0);
 // enables high speed FPGA configuration via EP4
 ENABLE_HS_FPGA_CONF(4);
 
-xdata BYTE run;
+__xdata BYTE run;
 
 #define[PRE_FPGA_RESET][PRE_FPGA_RESET
     run = 0;

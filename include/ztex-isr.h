@@ -361,7 +361,8 @@ void URES_ISR() __interrupt
 void HSGRANT_ISR() __interrupt
 {
         EXIF &= ~bmBIT4;
-	USBIRQ = bmBIT5;
+//        while ( USBIRQ & bmBIT5 )
+	    USBIRQ = bmBIT5;
 }        
 
 /* *********************************************************************

@@ -370,18 +370,26 @@ public class LibusbJava {
 	    		LibLoader.load( "libusbJava32" ); 
 	    	    }
 	    	}
-		else if ( System.getProperty("os.arch").equalsIgnoreCase("amd64") ) {
-	    		LibLoader.load( "usbJava64" );
-//	    		System.err.println("loaded libusbJava64");
-		}
 		else {
 		    try {
-	    		LibLoader.load( "usbJavaSh" );
-//	    		System.err.println("loaded libusbJavaSh");
+	    		LibLoader.load( "usbJava" );
+//	    		System.err.println("loaded libusbJava");
 	    	    }
 	    	    catch ( UnsatisfiedLinkError e ) {
-	    		LibLoader.load( "usbJavaSt" );
-//	    		System.err.println("loaded libusbJavaSt");
+		        if ( System.getProperty("os.arch").equalsIgnoreCase("amd64") || System.getProperty("os.arch").equalsIgnoreCase("x86_64") ) {
+	    		    LibLoader.load( "usbJava64" );
+//	    		    System.err.println("loaded libusbJava64");
+			}
+			else {
+			    try {
+	    			LibLoader.load( "usbJavaSh" );
+//	    			System.err.println("loaded libusbJavaSh");
+	    		    }
+	    		    catch ( UnsatisfiedLinkError e2 ) {
+	    			LibLoader.load( "usbJavaSt" );
+//	    			System.err.println("loaded libusbJavaSt");
+			    }
+			}
 	    	    }
 		}
 		// define the error codes

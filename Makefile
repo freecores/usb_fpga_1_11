@@ -1,6 +1,6 @@
 DIRS=bmp examples java libusbJava-src
 
-.PHONY: default all docs clean distclean
+.PHONY: default all clean distclean avr avrclean avrdistclean
 
 default: 
 	@echo "This makefile is intended to clean up the project or to build the utilties and examples"
@@ -14,7 +14,16 @@ docs:
 	make -C docs all
 
 clean: 
-	for i in $(DIRS); do make -C $$i clean; done
+	set -e; for i in $(DIRS); do make -C $$i clean; done
 
-distclean: clean
-	for i in $(DIRS); do make -C $$i distclean; done
+distclean:
+	set -e; for i in $(DIRS); do make -C $$i distclean; done
+
+avr: 
+	make -C examples avr
+
+avrclean: 
+	make -C examples avrclean
+
+avrdistclean: 
+	make -C examples avrdistclean

@@ -7,11 +7,11 @@ ZTEXPREFIX=../../..
 JARTARGET=Lightshow.jar
 CLASSTARGETS=Lightshow.class
 CLASSEXTRADEPS=
-#CLASSEXTRADEPS:=$(shell echo $(ZTEXPREFIX)/java/ztex/*.java)
+#CLASSEXTRADEPS:=$(wildcard $(ZTEXPREFIX)/java/ztex/*.java)
 
 IHXTARGETS=lightshow.ihx
 IHXEXTRADEPS=
-#IHXEXTRADEPS:=$(shell echo $(ZTEXPREFIX)/include/*.h)
+#IHXEXTRADEPS:=$(wildcard $(ZTEXPREFIX)/include/*.h)
 EXTRAJARFILES=lightshow.ihx avr/lightshow.ihx fpga/lightshow.bit
 
 ################################
